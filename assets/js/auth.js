@@ -51,7 +51,7 @@ async function requireAuth() {
   if (!teacher) {
     showToast('Accès non autorisé. Contactez l\'administrateur.', 'danger');
     await getClient().auth.signOut();
-    setTimeout(() => { window.location.href = 'index.html'; }, 2500);
+    setTimeout(() => { window.location.href = 'index.html'; }, 30000);
     return null;
   }
   return { session, teacher };
