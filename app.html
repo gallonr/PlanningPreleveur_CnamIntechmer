@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planning DSP — CNAM Intechmer</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- ======================== NAVBAR ======================== -->
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid px-3">
+    <span class="navbar-brand d-flex align-items-center gap-2">
+      <svg width="110" height="30" viewBox="0 0 110 30" xmlns="http://www.w3.org/2000/svg">
+        <text x="2" y="20" font-family="Arial" font-weight="700" font-size="13" fill="#ffffff">CNAM</text>
+        <text x="2" y="28" font-family="Arial" font-size="9" fill="#90b8e8">Intechmer</text>
+        <line x1="42" y1="4" x2="42" y2="28" stroke="#4fa3d8" stroke-width="1"/>
+        <text x="48" y="14" font-family="Arial" font-size="9" fill="#c8e0f8">Planning DSP</text>
+        <text x="48" y="25" font-family="Arial" font-size="8" fill="#90b8e8">Préleveur Milieu Naturel</text>
+      </svg>
+    </span>
+
+    <div class="d-flex align-items-center gap-2 ms-auto">
+      <!-- Filtre enseignant (admin) -->
+      <div id="teacherFilterWrap" class="d-none teacher-filter" style="min-width:180px">
+        <select id="teacherFilter" class="form-select form-select-sm"></select>
+      </div>
+
+      <!-- Export -->
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-download"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><h6 class="dropdown-header">Mon planning</h6></li>
+          <li><a class="dropdown-item" href="#" onclick="App.exportMine()"><i class="bi bi-file-pdf me-2"></i>PDF — toutes mes séances</a></li>
+          <li><a class="dropdown-item" href="#" onclick="App.exportMineExcel()"><i class="bi bi-file-excel me-2"></i>Excel — toutes mes séances</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick="App.exportWeekPDF()"><i class="bi bi-calendar-week me-2"></i>PDF — semaine étudiants</a></li>
+        </ul>
+      </div>
+
+      <!-- Bouton Admin -->
+      <div id="adminBtnWrap" class="d-none">
+        <button class="btn btn-sm btn-admin" onclick="App.openAdminPanel()">
+          <i class="bi bi-gear me-1"></i>Admin
+          <span id="requestsBadge" class="badge bg-danger ms-1 d-none">0</span>
+        </button>
+      </div>
+
+      <!-- Utilisateur -->
+      <span class="navbar-text small">
+        <i class="bi bi-person-circle me-1"></i><span id="userDisplay"></span>
+      </span>
+
+      <button class="btn btn-sm btn-outline-light" onclick="signOut()" title="Déconnexion">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+
+      <!-- Bouton menu mobile -->
+      <button class="btn btn-sm btn-outline-light d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('show-mobile')" title="Statistiques">
+        <i class="bi bi-bar-chart"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ======================== BODY ======================== -->
+<div class="app-wrapper">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar" class="sidebar">
+
+    <div class="sidebar-section">
+      <h6><i class="bi bi-clock me-1"></i>Heures par module</h6>
+      <div id="hoursCounter"><div class="empty-state">Chargement…</div></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h6><i class="bi bi-palette me-1"></i>Légende</h6>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a5276"></div>Cours magistral (CM)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1d8348"></div>Travaux dirigés (TD)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7d6608"></div>Travaux pratiques (TP)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#566573"></div>Divers</div>
+      <div class="legend-item mt-2">
+        <div class="legend-dot" style="background:repeating-linear-gradient(45deg,#ccc,#ccc 3px,#eee 3px,#eee 6px)"></div>
+        Semaine en entreprise
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h6><i class="bi bi-plus-circle me-1"></i>Ajouter</h6>
+      <button class="btn btn-sm btn-primary w-100" onclick="App.openAddModal(new Date().toISOString().split('T')[0], '08:00', '10:00')">
+        <i class="bi bi-plus me-1"></i>Nouvelle séance
+      </button>
+      <p class="text-muted mt-2 mb-0" style="font-size:11px">Ou cliquez-glissez sur le calendrier pour sélectionner un créneau.</p>
+    </div>
+
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="main-content">
+    <div id="calendar"></div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     MODAL — Ajouter / Modifier une séance
+     ============================================================ -->
+<div class="modal fade" id="sessionModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sessionModalTitle">Ajouter une séance</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Date <span class="text-danger">*</span></label>
+            <input type="date" id="fDate" class="form-control" min="2026-08-31" max="2027-07-30">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Heure de début <span class="text-danger">*</span></label>
+            <input type="time" id="fStartTime" class="form-control" min="07:30" max="18:00" step="900">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Durée <span class="text-danger">*</span></label>
+            <select id="fDuration" class="form-select"></select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Module</label>
+            <select id="fModule" class="form-select"></select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Enseignement</label>
+            <select id="fTeaching" class="form-select"></select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Type <span class="text-danger">*</span></label>
+            <select id="fType" class="form-select">
+              <option value="CM">CM — Cours magistral</option>
+              <option value="TD">TD — Travaux dirigés</option>
+              <option value="TP">TP — Travaux pratiques</option>
+              <option value="Divers">Divers</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Salle / Lieu</label>
+            <input type="text" id="fRoom" class="form-control" placeholder="ex : Salle 12, Labo…">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Groupe</label>
+            <input type="text" id="fGroup" class="form-control" placeholder="ex : Groupe A">
+          </div>
+
+          <div id="fTeacherWrap" class="col-md-6 d-none">
+            <label class="form-label">Enseignant</label>
+            <select id="fTeacher" class="form-select"></select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea id="fNotes" class="form-control" rows="2" placeholder="Informations complémentaires…"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="App.saveSession()">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — Voir une séance
+     ============================================================ -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <span id="viewModuleCode" class="me-2"></span>
+          <span id="viewType"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="session-detail-item"><span class="label">Enseignement : </span><span id="viewTeaching"></span></div>
+        <div class="session-detail-item"><span class="label">Enseignant : </span><span id="viewTeacher"></span></div>
+        <div class="session-detail-item"><span class="label">Date : </span><span id="viewDate"></span></div>
+        <div class="session-detail-item"><span class="label">Horaire : </span><span id="viewTime"></span></div>
+        <div class="session-detail-item"><span class="label">Salle : </span><span id="viewRoom"></span></div>
+        <div class="session-detail-item"><span class="label">Groupe : </span><span id="viewGroup"></span></div>
+        <div class="session-detail-item"><span class="label">Notes : </span><span id="viewNotes"></span></div>
+      </div>
+      <div class="modal-footer flex-wrap gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="btnReqModify">
+          <i class="bi bi-pencil me-1"></i>Demander modification
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" id="btnReqDelete">
+          <i class="bi bi-trash me-1"></i>Demander suppression
+        </button>
+        <button type="button" class="btn btn-primary btn-sm d-none" id="btnDirectEdit">
+          <i class="bi bi-pencil-fill me-1"></i>Modifier
+        </button>
+        <button type="button" class="btn btn-danger btn-sm d-none" id="btnDirectDelete">
+          <i class="bi bi-trash-fill me-1"></i>Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     OFFCANVAS — Panneau Admin
+     ============================================================ -->
+<div class="offcanvas offcanvas-end" id="adminPanel" tabindex="-1">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title"><i class="bi bi-gear me-2"></i>Panneau administrateur</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <ul class="nav nav-tabs px-3 pt-2" id="adminTabs">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabStats">
+          <i class="bi bi-bar-chart me-1"></i>Statistiques
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRequests">
+          <i class="bi bi-bell me-1"></i>Demandes
+          <span id="requestsBadge2" class="badge bg-danger ms-1">0</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTeachers">
+          <i class="bi bi-people me-1"></i>Enseignants
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content px-3 py-3">
+      <div class="tab-pane fade show active" id="tabStats">
+        <div class="d-flex justify-content-between mb-2">
+          <small class="text-muted">Heures posées vs prévues par enseignant et module</small>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.renderAdminStats()"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+        <div id="statsContainer" style="overflow-x:auto"></div>
+        <button class="btn btn-sm btn-outline-success mt-2" onclick="exportStatsExcel(App.buildStatsRows())">
+          <i class="bi bi-file-excel me-1"></i>Exporter Excel
+        </button>
+      </div>
+
+      <div class="tab-pane fade" id="tabRequests">
+        <div class="d-flex justify-content-between mb-2">
+          <small class="text-muted">Demandes de modification / suppression</small>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.loadRequests().then(()=>App.renderAdminRequests())"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+        <div id="requestsContainer"></div>
+      </div>
+
+      <div class="tab-pane fade" id="tabTeachers">
+        <div id="teachersContainer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — Ajouter / Modifier enseignant (admin)
+     ============================================================ -->
+<div class="modal fade" id="teacherModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="teacherModalTitle">Enseignant</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tId">
+        <div class="mb-3">
+          <label class="form-label">Nom complet <span class="text-danger">*</span></label>
+          <input type="text" id="tName" class="form-control" placeholder="Prénom NOM">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" id="tEmail" class="form-control" placeholder="prenom.nom@exemple.fr">
+          <div class="form-text">L'enseignant utilise cet email pour se connecter.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Type</label>
+          <select id="tType" class="form-select">
+            <option value="CNAM">CNAM (interne)</option>
+            <option value="Ext">Externe</option>
+          </select>
+        </div>
+        <div class="form-check">
+          <input type="checkbox" id="tAdmin" class="form-check-input">
+          <label class="form-check-label" for="tAdmin">Administrateur</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="App.saveTeacher()">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+<!-- ======================== SCRIPTS ======================== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/fr.global.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/export.js"></script>
+<script src="assets/js/app.js"></script>
+
+<script>
+  // Helper pour export stats depuis le panneau admin
+  App.buildStatsRows = function() {
+    const placed = {};
+    App.sessions.forEach(s => {
+      if (!s.teaching_id || !s.teacher_id) return;
+      const key = `${s.teaching_id}_${s.teacher_id}_${s.session_type}`;
+      placed[key] = (placed[key] || 0) + durationMinutes(s.start_time, s.end_time) / 60;
+    });
+    return App.assignments.map(a => {
+      const t = App.teachers.find(x => x.id === a.teacher_id);
+      const m = a.teaching?.module;
+      return {
+        'Module':      m?.code || '',
+        'Enseignement': a.teaching?.title || '',
+        'Enseignant':  t?.name || '',
+        'CM prévu (h)': a.cm_hours,
+        'CM posé (h)':  +(placed[`${a.teaching_id}_${a.teacher_id}_CM`]||0).toFixed(1),
+        'TD prévu (h)': a.td_hours,
+        'TD posé (h)':  +(placed[`${a.teaching_id}_${a.teacher_id}_TD`]||0).toFixed(1),
+        'TP prévu (h)': a.tp_hours,
+        'TP posé (h)':  +(placed[`${a.teaching_id}_${a.teacher_id}_TP`]||0).toFixed(1)
+      };
+    });
+  };
+
+  // Synchro badge dans le second onglet
+  const origLoadRequests = App.loadRequests.bind(App);
+  App.loadRequests = async function() {
+    await origLoadRequests();
+    const n = App.requests.filter(r => r.status === 'pending').length;
+    const b2 = document.getElementById('requestsBadge2');
+    if (b2) { b2.textContent = n; b2.classList.toggle('d-none', n === 0); }
+  };
+</script>
+</body>
+</html>

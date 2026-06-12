@@ -1,0 +1,7 @@
+Je suis responsable de la formation DSP "Préleveur en Milieu naturel" (https://www.francecompetences.fr/recherche/rncp/40338 ou https://www.intechmer.cnam.fr/preleveur-en-milieu-naturel-1519499.kjsp). Je souhaite hébergé une page via mon github qui permet à mes intervenants de rentrer leur heures d'enseignements (CM, TD, TP) facilement en visualisant facilement les heures déjà posées et celles encore à poser.
+Les heures sont décrites dans le fichier "HeuresDSPEnseignants.xlsx". Certains enseignants ne sont pas renseigner, je veux pouvoir les renseigner. Il faut que que ce soit un outils simple et efficace. Je te joins l'actuel fichier 'edtDSP.ods' que quelques enseignants ont remplis. tu peux l'utiliser pour connaitre les dates ou les élèves sont en entreprises et celles ou les élèves sont en centre de formation.
+Dans les réservations, il faut afficher le code du module (STMxxx /n l'enseignement / le nom de l'enseignant).
+Il faut que l'enseignant puisse ajouter ou modifier ses créneaux et je reçois une alerte par mail (regis.gallon@lecnam.net) pour la demande modification ou de suppression.
+Je veux que la charte graphique respecte celle du cnam Intechmer (https://www.intechmer.cnam.fr/intechmer/)
+Je veux pouvoir exporter un emploi semainier pour les étudiants. Les enseignants doivent pouvoir exporter leur semainier ou l'ensemble des dates d'intervention en fonction avec le descriptif (CM, TD, TP).
+Certaines ne sont pas attribués à des modules ce sera du "Divers".

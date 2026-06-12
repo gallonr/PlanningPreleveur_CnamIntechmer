@@ -1,0 +1,5 @@
+.claude/
+*.ods
+*.xlsx
+*.bak
+.DS_Store
