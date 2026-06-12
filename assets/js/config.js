@@ -3,8 +3,8 @@
 // ============================================================
 
 const CONFIG = {
-  supabaseUrl:     'https://VOTRE_PROJET.supabase.co',
-  supabaseAnonKey: 'VOTRE_CLE_ANON',
+  supabaseUrl:     'https://bwdxyedirjwjssxinjzt.supabase.co',
+  supabaseAnonKey: 'sb_publishable_40eHSqPTMnxz2dUGMFF0yg_lnS2FRO2',
 
   // URL de votre GitHub Pages (doit correspondre exactement)
   appUrl: 'https://gallonr.github.io/PlanningPreleveur_CnamIntechmer/',
