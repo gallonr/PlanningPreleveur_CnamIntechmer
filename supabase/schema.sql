@@ -196,7 +196,7 @@ INSERT INTO modules (code, title, ects, sort_order) VALUES
   ('STM024', 'Calibration et métrologie', 6, 3),
   ('STM025', 'Compréhension de l''écosystème', 8, 4),
   ('STM026', 'Réglementation et suivi de la qualité environnementale', 8, 5),
-  ('STM027', 'Communication – Langues étrangères', 6, 6),
+  ('STM027', 'Communication - Langues etrangeres', 6, 6),
   ('STM028', 'Économie, gestion et organisation de l''entreprise', 4, 7),
   ('UATM011', 'Projet tutoré', 2, 8),
   ('UATM012', 'Expérience professionnelle', 8, 9);
@@ -265,7 +265,7 @@ SELECT id, 'Fonctionnement de l''entreprise', 1 FROM modules WHERE code = 'STM02
 INSERT INTO teachings (module_id, title, sort_order)
 SELECT id, 'Droit et devoir du travail', 2 FROM modules WHERE code = 'STM028';
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Droit du travail — contrat d''apprentissage', 3 FROM modules WHERE code = 'STM028';
+SELECT id, 'Droit du travail - contrat d''apprentissage', 3 FROM modules WHERE code = 'STM028';
 
 -- Enseignements UATM011 / UATM012
 INSERT INTO teachings (module_id, title, sort_order)
@@ -482,4 +482,4 @@ INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, t
 SELECT t.id, te.id, 4, 6, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Mathilde AMIARD'
-WHERE m.code = 'STM028' AND t.title = 'Droit du travail — contrat d''apprentissage';
+WHERE m.code = 'STM028' AND t.title = 'Droit du travail - contrat d''apprentissage';
