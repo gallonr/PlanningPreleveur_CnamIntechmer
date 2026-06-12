@@ -35,7 +35,7 @@ async function getCurrentTeacher(email) {
     .select('*')
     .eq('email', email)
     .single();
-  if (error) return null;
+  if (error) { console.error('getCurrentTeacher error:', error); return null; }
   return data;
 }
 
