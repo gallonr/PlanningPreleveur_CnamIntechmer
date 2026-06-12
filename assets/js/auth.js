@@ -37,7 +37,7 @@ async function getCurrentTeacher(email) {
     .select('*')
     .eq('email', email)
     .single();
-  if (error) { console.error('getCurrentTeacher error:', error); return null; }
+  if (error) { localStorage.setItem('debug_auth_error', JSON.stringify(error)); return null; }
   return data;
 }
 
@@ -49,7 +49,8 @@ async function requireAuth() {
   }
   const teacher = await getCurrentTeacher(session.user.email);
   if (!teacher) {
-    showToast('Accès non autorisé. Contactez l\'administrateur.', 'danger');
+    const dbg = localStorage.getItem('debug_auth_error') || 'null';
+    showToast('Accès non autorisé. Erreur : ' + dbg, 'danger');
     await getClient().auth.signOut();
     setTimeout(() => { window.location.href = 'index.html'; }, 30000);
     return null;
