@@ -44,14 +44,15 @@ async function getCurrentTeacher(email) {
 async function requireAuth() {
   const session = await getSession();
   if (!session) {
-    window.location.href = 'index.html';
+    console.error('No session found. URL hash:', window.location.hash, 'URL search:', window.location.search);
+    setTimeout(() => { window.location.href = 'index.html'; }, 30000);
     return null;
   }
   const teacher = await getCurrentTeacher(session.user.email);
   if (!teacher) {
     showToast('Accès non autorisé. Contactez l\'administrateur.', 'danger');
     await getClient().auth.signOut();
-    setTimeout(() => { window.location.href = 'index.html'; }, 2500);
+    setTimeout(() => { window.location.href = 'index.html'; }, 30000);
     return null;
   }
   return { session, teacher };
