@@ -171,10 +171,10 @@ body {
 .fc-bg-event.enterprise-bg {
   background: repeating-linear-gradient(
     45deg,
-    rgba(200,200,200,.15),
-    rgba(200,200,200,.15) 4px,
-    rgba(220,220,220,.25) 4px,
-    rgba(220,220,220,.25) 8px
+    rgba(100,100,120,.35),
+    rgba(100,100,120,.35) 4px,
+    rgba(130,130,150,.50) 4px,
+    rgba(130,130,150,.50) 8px
   ) !important;
 }
 
