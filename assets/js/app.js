@@ -82,7 +82,7 @@ const App = {
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(d.setDate(diff));
-    const mondayStr = monday.toISOString().split('T')[0];
+    const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
     return !App.centreSet.has(mondayStr);
   },
 
