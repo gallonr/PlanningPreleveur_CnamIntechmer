@@ -7,7 +7,7 @@ let _client = null;
 function getClient() {
   if (!_client) {
     _client = supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, {
-      auth: { flowType: 'pkce' }
+      auth: { flowType: 'implicit' }
     });
   }
   return _client;
