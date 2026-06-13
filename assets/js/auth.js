@@ -42,10 +42,16 @@ async function getCurrentTeacher(email) {
 }
 
 async function requireAuth() {
+  const hash = window.location.hash;
+  if (hash.includes('error_code=otp_expired') || hash.includes('error=access_denied')) {
+    showToast('Le lien de connexion a expiré. Vous allez être redirigé pour en demander un nouveau.', 'warning');
+    setTimeout(() => { window.location.href = 'index.html'; }, 4000);
+    return null;
+  }
   const session = await getSession();
   if (!session) {
-    console.error('No session found. URL hash:', window.location.hash, 'URL search:', window.location.search);
-    setTimeout(() => { window.location.href = 'index.html'; }, 30000);
+    showToast('Session introuvable. Redirection vers la page de connexion.', 'danger');
+    setTimeout(() => { window.location.href = 'index.html'; }, 4000);
     return null;
   }
   const teacher = await getCurrentTeacher(session.user.email);
