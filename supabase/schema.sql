@@ -280,6 +280,16 @@ SELECT id, 'Projet tutoré', 1 FROM modules WHERE code = 'UATM011';
 INSERT INTO teachings (module_id, title, sort_order)
 SELECT id, 'Expérience professionnelle en entreprise', 1 FROM modules WHERE code = 'UATM012';
 
+-- Module Divers (activités hors enseignement académique)
+INSERT INTO modules (code, title, sort_order) VALUES ('DIVERS', 'Divers', 10);
+
+INSERT INTO teachings (module_id, title, sort_order)
+SELECT id, 'Réunion', 1 FROM modules WHERE code = 'DIVERS';
+INSERT INTO teachings (module_id, title, sort_order)
+SELECT id, 'Sorties', 2 FROM modules WHERE code = 'DIVERS';
+INSERT INTO teachings (module_id, title, sort_order)
+SELECT id, 'Accueil', 3 FROM modules WHERE code = 'DIVERS';
+
 -- Enseignants (admin seul avec email — les autres à renseigner via l'interface admin)
 INSERT INTO teachers (name, email, teacher_type, is_admin) VALUES
   ('Régis GALLON', 'regis.gallon@lecnam.net', 'CNAM', TRUE);
