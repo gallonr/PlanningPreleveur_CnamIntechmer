@@ -129,7 +129,7 @@ const App = {
       locale: 'fr',
       initialView: 'timeGridWeek',
       firstDay: 1,
-      slotMinTime: '07:30:00',
+      slotMinTime: '07:00:00',
       slotMaxTime: '19:00:00',
       slotDuration: '00:30:00',
       slotLabelInterval: '01:00:00',
