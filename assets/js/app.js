@@ -131,7 +131,7 @@ const App = {
       firstDay: 1,
       slotMinTime: '07:30:00',
       slotMaxTime: '19:00:00',
-      slotDuration: '00:15:00',
+      slotDuration: '00:30:00',
       slotLabelInterval: '01:00:00',
       allDaySlot: false,
       weekends: false,
