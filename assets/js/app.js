@@ -246,6 +246,13 @@ const App = {
     new bootstrap.Modal(document.getElementById('sessionModal')).show();
   },
 
+  openDuplicateModal(session) {
+    App.editingSession = null;
+    document.getElementById('sessionModalTitle').textContent = 'Dupliquer une séance';
+    App.fillSessionForm(session, session.session_date, session.start_time, session.end_time);
+    new bootstrap.Modal(document.getElementById('sessionModal')).show();
+  },
+
   openEditModal(session) {
     App.editingSession = session;
     document.getElementById('sessionModalTitle').textContent = 'Modifier une séance';
@@ -395,6 +402,7 @@ const App = {
     document.getElementById('btnReqModify').classList.toggle('d-none', App.isAdmin || !ownSession);
     document.getElementById('btnReqDelete').classList.toggle('d-none', App.isAdmin || !ownSession);
 
+    document.getElementById('btnDuplicate').onclick     = () => { bootstrap.Modal.getInstance(m).hide(); App.openDuplicateModal(session); };
     document.getElementById('btnDirectEdit').onclick   = () => { bootstrap.Modal.getInstance(m).hide(); App.openEditModal(session); };
     document.getElementById('btnDirectDelete').onclick = () => App.directDelete(session, m);
     document.getElementById('btnReqModify').onclick    = () => { bootstrap.Modal.getInstance(m).hide(); App.openEditModal(session); };
