@@ -157,6 +157,7 @@ body {
 .event-module { font-weight: 700; font-size: 11px; line-height: 1.2; }
 .event-teaching { font-size: 10px; line-height: 1.2; opacity: .9; }
 .event-teacher  { font-size: 10px; line-height: 1.2; opacity: .85; }
+.event-notes    { font-size: 10px; line-height: 1.2; opacity: .8; font-style: italic; }
 .event-type-badge {
   display: inline-block;
   font-size: 9px;

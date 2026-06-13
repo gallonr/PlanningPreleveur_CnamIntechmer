@@ -215,6 +215,7 @@ const App = {
         <div class="event-module">${escapeHtml(moduleCode || 'Divers')} <span class="event-type-badge">${escapeHtml(s.session_type)}</span></div>
         <div class="event-teaching">${escapeHtml(teachingTitle)}</div>
         <div class="event-teacher">${escapeHtml(teacherName)}</div>
+        ${s.notes ? `<div class="event-notes">${escapeHtml(s.notes)}</div>` : ''}
       </div>`
     };
   },
