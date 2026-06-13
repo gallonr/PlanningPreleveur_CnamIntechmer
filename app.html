@@ -327,6 +327,35 @@
   </div>
 </div>
 
+<!-- Modal duplication multiple dates -->
+<div class="modal fade" id="duplicateModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-copy me-2"></i>Dupliquer sur plusieurs dates</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="dupSessionSummary" class="alert alert-secondary py-2 mb-3 small"></div>
+        <div class="d-flex gap-2 align-items-center flex-wrap mb-3">
+          <span class="fw-semibold small text-muted">Sélection rapide :</span>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="dupFilterSameDay">Même jour de semaine</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="dupSelectAll">Tout</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="dupSelectNone">Aucun</button>
+        </div>
+        <div id="dupDateList" style="max-height: 380px; overflow-y: auto; padding-right: 4px;"></div>
+      </div>
+      <div class="modal-footer">
+        <span class="text-muted small me-auto"><span id="dupSelectedCount">0</span> date(s) sélectionnée(s)</span>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-success btn-sm" id="btnExecuteDuplicate">
+          <i class="bi bi-copy me-1"></i>Créer les séances
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 

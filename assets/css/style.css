@@ -270,3 +270,16 @@ body {
 .type-badge.TD     { background: var(--color-td); }
 .type-badge.TP     { background: var(--color-tp); }
 .type-badge.Divers { background: var(--color-divers); }
+
+/* ---- Duplication multi-dates ---- */
+.dup-month-block   { margin-bottom: 14px; }
+.dup-month-title   { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: capitalize;
+                     border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 7px; }
+.dup-dates-grid    { display: flex; flex-wrap: wrap; gap: 5px; }
+.dup-date-label    { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 5px;
+                     border: 1px solid var(--border); font-size: 12px; cursor: pointer; user-select: none;
+                     transition: background 0.1s, border-color 0.1s; white-space: nowrap; }
+.dup-date-label input  { display: none; }
+.dup-date-label:hover  { background: var(--blue-bg); border-color: var(--blue-light); }
+.dup-date-label.selected { background: var(--blue-bg); border-color: var(--blue-mid);
+                            color: var(--blue-dark); font-weight: 700; }

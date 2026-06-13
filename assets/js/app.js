@@ -19,7 +19,8 @@ const App = {
 
   centreSet: new Set(),
   filterTeacherId: null,   // admin: filtrer par enseignant
-  editingSession: null,    // séance en cours d'édition
+  editingSession: null,
+  _duplicatingSession: null,
 
   async init() {
     App.db = getClient();
@@ -247,10 +248,124 @@ const App = {
   },
 
   openDuplicateModal(session) {
-    App.editingSession = null;
-    document.getElementById('sessionModalTitle').textContent = 'Dupliquer une séance';
-    App.fillSessionForm(session, session.session_date, session.start_time, session.end_time);
-    new bootstrap.Modal(document.getElementById('sessionModal')).show();
+    App._duplicatingSession = session;
+
+    // Build session summary
+    const modCode   = session.teaching?.module?.code || '';
+    const teaching  = session.teaching?.title || '';
+    const timeStr   = `${formatTime(session.start_time)} – ${formatTime(session.end_time)}`;
+    const color     = CONFIG.sessionColors[session.session_type] || '#566573';
+    document.getElementById('dupSessionSummary').innerHTML =
+      `${modCode ? '<strong>' + escapeHtml(modCode) + '</strong> — ' : ''}${escapeHtml(teaching)}` +
+      ` <span class="badge ms-1" style="background:${color}">${escapeHtml(session.session_type)}</span>` +
+      ` <span class="ms-2 text-muted">${escapeHtml(timeStr)}</span>`;
+
+    const origDow = new Date(session.session_date + 'T00:00:00').getDay();
+    const available = App._buildAvailableDates(session.session_date);
+    App._renderDuplicateDates(available, origDow);
+    App._updateDupCount();
+
+    document.getElementById('dupFilterSameDay').onclick = () => {
+      document.querySelectorAll('#dupDateList input[type=checkbox]').forEach(cb => {
+        const selected = new Date(cb.value + 'T00:00:00').getDay() === origDow;
+        cb.checked = selected;
+        cb.closest('label').classList.toggle('selected', selected);
+      });
+      App._updateDupCount();
+    };
+    document.getElementById('dupSelectAll').onclick = () => {
+      document.querySelectorAll('#dupDateList input[type=checkbox]').forEach(cb => {
+        cb.checked = true;
+        cb.closest('label').classList.add('selected');
+      });
+      App._updateDupCount();
+    };
+    document.getElementById('dupSelectNone').onclick = () => {
+      document.querySelectorAll('#dupDateList input[type=checkbox]').forEach(cb => {
+        cb.checked = false;
+        cb.closest('label').classList.remove('selected');
+      });
+      App._updateDupCount();
+    };
+    document.getElementById('btnExecuteDuplicate').onclick = () => App.executeDuplicate();
+
+    new bootstrap.Modal(document.getElementById('duplicateModal')).show();
+  },
+
+  _buildAvailableDates(excludeDate) {
+    const dates = [];
+    const end = new Date(CONFIG.calendarEnd + 'T00:00:00');
+    const d   = new Date(CONFIG.calendarStart + 'T00:00:00');
+    while (d <= end) {
+      const day = d.getDay();
+      if (day >= 1 && day <= 5) {
+        const str = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (str !== excludeDate && !App.isEnterpriseDate(str)) dates.push(str);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  },
+
+  _renderDuplicateDates(dates, preSelectDow) {
+    const dayNames = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+    const byMonth  = {};
+    dates.forEach(str => {
+      const key = str.substring(0, 7);
+      if (!byMonth[key]) byMonth[key] = [];
+      byMonth[key].push(str);
+    });
+    document.getElementById('dupDateList').innerHTML = Object.entries(byMonth).map(([key, ds]) => {
+      const monthLabel = new Date(key + '-01T00:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const boxes = ds.map(str => {
+        const d   = new Date(str + 'T00:00:00');
+        const sel = preSelectDow !== undefined && d.getDay() === preSelectDow;
+        return `<label class="dup-date-label${sel ? ' selected' : ''}">` +
+          `<input type="checkbox" value="${str}"${sel ? ' checked' : ''} onchange="this.closest('label').classList.toggle('selected',this.checked);App._updateDupCount()">` +
+          `${escapeHtml(dayNames[d.getDay()])} ${d.getDate()}</label>`;
+      }).join('');
+      return `<div class="dup-month-block"><div class="dup-month-title">${escapeHtml(monthLabel)}</div>` +
+             `<div class="dup-dates-grid">${boxes}</div></div>`;
+    }).join('');
+  },
+
+  _updateDupCount() {
+    document.getElementById('dupSelectedCount').textContent =
+      document.querySelectorAll('#dupDateList input[type=checkbox]:checked').length;
+  },
+
+  async executeDuplicate() {
+    const session = App._duplicatingSession;
+    if (!session) return;
+    const checked = [...document.querySelectorAll('#dupDateList input[type=checkbox]:checked')];
+    if (!checked.length) { showToast('Sélectionnez au moins une date.', 'warning'); return; }
+
+    const teacherId = App.isAdmin ? session.teacher_id : App.teacher.id;
+    const rows = checked.map(cb => ({
+      teaching_id:   session.teaching_id || null,
+      teacher_id:    teacherId,
+      session_date:  cb.value,
+      start_time:    session.start_time,
+      end_time:      session.end_time,
+      session_type:  session.session_type,
+      room:          session.room || '',
+      student_group: session.student_group || '',
+      notes:         session.notes || ''
+    }));
+
+    const btn = document.getElementById('btnExecuteDuplicate');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Création…';
+
+    const { error } = await App.db.from('sessions').insert(rows);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-copy me-1"></i>Créer les séances';
+
+    if (error) { showToast('Erreur : ' + error.message, 'danger'); return; }
+
+    bootstrap.Modal.getInstance(document.getElementById('duplicateModal'))?.hide();
+    showToast(`${rows.length} séance(s) créée(s).`, 'success');
+    await App.refresh();
   },
 
   openEditModal(session) {
