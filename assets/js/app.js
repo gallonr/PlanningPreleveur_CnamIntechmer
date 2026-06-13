@@ -130,7 +130,7 @@ const App = {
       initialView: 'timeGridWeek',
       firstDay: 1,
       slotMinTime: '07:00:00',
-      slotMaxTime: '19:00:00',
+      slotMaxTime: '21:00:00',
       slotDuration: '00:30:00',
       slotLabelInterval: '01:00:00',
       allDaySlot: false,
@@ -150,7 +150,7 @@ const App = {
       select: App.handleSelect,
       selectable: true,
       selectMirror: true,
-      businessHours: { daysOfWeek: [1,2,3,4,5], startTime: '08:00', endTime: '18:00' }
+      businessHours: { daysOfWeek: [1,2,3,4,5], startTime: '07:00', endTime: '21:00' }
     });
     App.calendar.render();
   },
