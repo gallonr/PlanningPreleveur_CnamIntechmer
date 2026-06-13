@@ -13,8 +13,18 @@ function getClient() {
   return _client;
 }
 
+async function isTeacherEmail(email) {
+  const { data, error } = await getClient().rpc('is_teacher_email', { p_email: email });
+  if (error) return true; // En cas d'erreur RPC, on laisse Supabase gérer
+  return !!data;
+}
+
 async function signInWithMagicLink(email) {
-  const { error } = await getClient().auth.signInWithOtp({ email });
+  // shouldCreateUser: false — on n'autorise que les comptes créés manuellement par l'admin
+  const { error } = await getClient().auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false }
+  });
   return error;
 }
 

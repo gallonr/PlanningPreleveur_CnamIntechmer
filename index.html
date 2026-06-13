@@ -96,14 +96,34 @@
     hideError();
     const btn = document.getElementById('btnLogin');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours…';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Vérification…';
 
+    // Vérifier que l'email est bien un enseignant enregistré
+    const allowed = await isTeacherEmail(email);
+    if (!allowed) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-envelope me-2"></i>Recevoir mon code de connexion';
+      showError('Cette adresse email n\'est pas enregistrée. Contactez regis.gallon@lecnam.net.');
+      return;
+    }
+
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours…';
     const error = await signInWithMagicLink(email);
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-envelope me-2"></i>Recevoir mon code de connexion';
 
     if (error) {
-      showError(error.message);
+      // Traduire les erreurs Supabase en messages clairs
+      const msg = error.message || '';
+      if (msg.includes('not allowed') || msg.includes('Signups') || msg.includes('disabled') || msg.includes('not found') || msg.includes('user')) {
+        showError('Votre compte n\'a pas encore été activé par l\'administrateur. Contactez regis.gallon@lecnam.net.');
+      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+        showError('Trop de tentatives. Veuillez patienter quelques minutes avant de réessayer.');
+      } else if (msg.includes('sending') || msg.includes('email')) {
+        showError('Problème d\'envoi du code. Réessayez dans quelques instants ou contactez regis.gallon@lecnam.net.');
+      } else {
+        showError('Impossible d\'envoyer le code. Contactez regis.gallon@lecnam.net. (' + msg + ')');
+      }
     } else {
       _pendingEmail = email;
       document.getElementById('sentEmailDisplay').textContent = email;
