@@ -27,20 +27,34 @@
     <h1 class="login-title">Planning des enseignements</h1>
     <p class="login-subtitle">DSP Préleveur en Milieu Naturel — 2026-2027</p>
 
+    <!-- Étape 1 : saisie email -->
     <div id="loginForm">
       <div class="mb-3">
         <label for="emailInput" class="form-label fw-semibold">Votre adresse email</label>
         <input type="email" id="emailInput" class="form-control" placeholder="prenom.nom@exemple.fr" required autofocus>
       </div>
       <button id="btnLogin" class="btn-login btn">
-        <i class="bi bi-envelope me-2"></i>Recevoir mon lien de connexion
+        <i class="bi bi-envelope me-2"></i>Recevoir mon code de connexion
       </button>
     </div>
 
-    <div id="successMsg" class="alert alert-success mt-3 d-none" role="alert">
-      <i class="bi bi-check-circle me-2"></i>
-      <strong>Email envoyé !</strong><br>
-      Vérifiez votre boîte mail et cliquez sur le lien pour accéder au planning.
+    <!-- Étape 2 : saisie du code reçu par email -->
+    <div id="codeForm" class="d-none">
+      <p class="text-muted small mb-3">Un code de connexion a été envoyé à <strong id="sentEmailDisplay"></strong>.</p>
+      <div class="mb-3">
+        <label for="codeInput" class="form-label fw-semibold">Code reçu par email</label>
+        <input type="text" id="codeInput" class="form-control form-control-lg text-center fw-bold"
+               maxlength="32" inputmode="numeric" placeholder="······" autocomplete="one-time-code"
+               style="letter-spacing: 0.3em; font-size: 1.4rem;">
+      </div>
+      <button id="btnVerify" class="btn-login btn">
+        <i class="bi bi-check-circle me-2"></i>Valider le code
+      </button>
+      <div class="text-center mt-3">
+        <button id="btnResend" class="btn btn-link btn-sm text-muted p-0">
+          Renvoyer un code
+        </button>
+      </div>
     </div>
 
     <div id="errorMsg" class="alert alert-danger mt-3 d-none" role="alert">
@@ -49,7 +63,7 @@
     </div>
 
     <div class="login-footer">
-      <i class="bi bi-shield-lock me-1"></i>Connexion sécurisée par lien unique.<br>
+      <i class="bi bi-shield-lock me-1"></i>Connexion sécurisée par code à usage unique.<br>
       Problème d'accès ? Contactez <a href="mailto:regis.gallon@lecnam.net">regis.gallon@lecnam.net</a>
     </div>
   </div>
@@ -60,38 +74,79 @@
 <script src="assets/js/config.js"></script>
 <script src="assets/js/auth.js"></script>
 <script>
-  // Si l'utilisateur est déjà connecté, rediriger
+  let _pendingEmail = '';
+
   (async () => {
     const s = await getSession();
     if (s) window.location.href = 'app.html';
   })();
 
+  function showError(msg) {
+    document.getElementById('errorText').textContent = msg;
+    document.getElementById('errorMsg').classList.remove('d-none');
+  }
+  function hideError() {
+    document.getElementById('errorMsg').classList.add('d-none');
+  }
+
+  // Étape 1 : envoi du code
   document.getElementById('btnLogin').addEventListener('click', async () => {
     const email = document.getElementById('emailInput').value.trim().toLowerCase();
-    if (!email || !email.includes('@')) {
-      document.getElementById('errorText').textContent = 'Veuillez saisir une adresse email valide.';
-      document.getElementById('errorMsg').classList.remove('d-none');
-      return;
-    }
-    document.getElementById('errorMsg').classList.add('d-none');
-    document.getElementById('btnLogin').disabled = true;
-    document.getElementById('btnLogin').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours…';
+    if (!email || !email.includes('@')) { showError('Veuillez saisir une adresse email valide.'); return; }
+    hideError();
+    const btn = document.getElementById('btnLogin');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours…';
 
     const error = await signInWithMagicLink(email);
-    document.getElementById('btnLogin').disabled = false;
-    document.getElementById('btnLogin').innerHTML = '<i class="bi bi-envelope me-2"></i>Recevoir mon lien de connexion';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-envelope me-2"></i>Recevoir mon code de connexion';
 
     if (error) {
-      document.getElementById('errorText').textContent = error.message;
-      document.getElementById('errorMsg').classList.remove('d-none');
+      showError(error.message);
     } else {
+      _pendingEmail = email;
+      document.getElementById('sentEmailDisplay').textContent = email;
       document.getElementById('loginForm').classList.add('d-none');
-      document.getElementById('successMsg').classList.remove('d-none');
+      document.getElementById('codeForm').classList.remove('d-none');
+      document.getElementById('codeInput').focus();
     }
+  });
+
+  // Étape 2 : validation du code
+  document.getElementById('btnVerify').addEventListener('click', async () => {
+    const code = document.getElementById('codeInput').value.trim();
+    if (!code) { showError('Veuillez saisir le code reçu par email.'); return; }
+    hideError();
+    const btn = document.getElementById('btnVerify');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Vérification…';
+
+    const error = await verifyOtpCode(_pendingEmail, code);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Valider le code';
+
+    if (error) {
+      showError('Code incorrect ou expiré. Vérifiez le code ou demandez-en un nouveau.');
+    } else {
+      window.location.href = 'app.html';
+    }
+  });
+
+  // Renvoyer un code → retour étape 1
+  document.getElementById('btnResend').addEventListener('click', () => {
+    document.getElementById('codeInput').value = '';
+    document.getElementById('codeForm').classList.add('d-none');
+    document.getElementById('loginForm').classList.remove('d-none');
+    document.getElementById('emailInput').value = _pendingEmail;
+    hideError();
   });
 
   document.getElementById('emailInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('btnLogin').click();
+  });
+  document.getElementById('codeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btnVerify').click();
   });
 </script>
 </body>

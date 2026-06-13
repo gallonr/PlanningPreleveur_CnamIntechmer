@@ -14,10 +14,12 @@ function getClient() {
 }
 
 async function signInWithMagicLink(email) {
-  const { error } = await getClient().auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: CONFIG.appUrl + 'app.html' }
-  });
+  const { error } = await getClient().auth.signInWithOtp({ email });
+  return error;
+}
+
+async function verifyOtpCode(email, token) {
+  const { error } = await getClient().auth.verifyOtp({ email, token, type: 'email' });
   return error;
 }
 
