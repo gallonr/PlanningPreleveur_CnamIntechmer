@@ -709,17 +709,18 @@ const App = {
       return { teacher, mod, a, cm_done, td_done, tp_done };
     }).filter(r => r.teacher && r.mod);
 
-    rows.sort((a,b) => (a.mod?.code||'').localeCompare(b.mod?.code||'') || (a.teacher?.name||'').localeCompare(b.teacher?.name||''));
+    rows.sort((a,b) => (a.mod?.code||'').localeCompare(b.mod?.code||'') || (a.a.teaching?.title||'').localeCompare(b.a.teaching?.title||'') || (a.teacher?.name||'').localeCompare(b.teacher?.name||''));
 
     container.innerHTML = `<table class="table table-sm table-bordered stat-table">
       <thead><tr>
-        <th>Module</th><th>Enseignant</th>
+        <th>Module</th><th>Enseignement</th><th>Enseignant</th>
         <th>CM prévu</th><th>CM posé</th>
         <th>TD prévu</th><th>TD posé</th>
         <th>TP prévu</th><th>TP posé</th>
       </tr></thead>
       <tbody>${rows.map(r => `<tr>
         <td><strong>${escapeHtml(r.mod?.code)}</strong></td>
+        <td>${escapeHtml(r.a.teaching?.title || '')}</td>
         <td>${escapeHtml(r.teacher?.name)}</td>
         <td>${r.a.cm_hours}h</td><td class="${r.cm_done > r.a.cm_hours ? 'text-danger fw-bold' : r.cm_done >= r.a.cm_hours && r.a.cm_hours > 0 ? 'text-success' : ''}">${r.cm_done.toFixed(1)}h</td>
         <td>${r.a.td_hours}h</td><td class="${r.td_done > r.a.td_hours ? 'text-danger fw-bold' : r.td_done >= r.a.td_hours && r.a.td_hours > 0 ? 'text-success' : ''}">${r.td_done.toFixed(1)}h</td>
