@@ -261,7 +261,7 @@
       <div class="tab-pane fade show active" id="tabStats">
         <div class="d-flex justify-content-between mb-2">
           <small class="text-muted">Heures posées vs prévues par enseignant et module</small>
-          <button class="btn btn-sm btn-outline-secondary" onclick="App.renderAdminStats()"><i class="bi bi-arrow-clockwise"></i></button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.refresh().then(()=>App.renderAdminStats())"><i class="bi bi-arrow-clockwise"></i></button>
         </div>
         <div id="statsContainer" style="overflow-x:auto"></div>
         <button class="btn btn-sm btn-outline-success mt-2" onclick="exportStatsExcel(App.buildStatsRows())">

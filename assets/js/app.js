@@ -66,7 +66,7 @@ const App = {
       App.db.from('modules').select('*').order('sort_order'),
       App.db.from('teachings').select('*, module:modules(id,code,title)').order('sort_order'),
       App.db.from('teachers').select('*').order('name'),
-      App.db.from('teaching_assignments').select('*, teaching:teachings(id,title,module:modules(id,code))').order('id'),
+      App.db.from('teaching_assignments').select('*, teaching:teachings(id,title,module:modules(id,code,title))').order('id'),
       App.db.from('centre_periods').select('*').order('start_date')
     ]);
     App.modules = modules || [];
@@ -143,8 +143,7 @@ const App = {
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,timeGridDay'
       },
-      validRange: { start: CONFIG.calendarStart, end: CONFIG.calendarEnd },
-      initialDate: '2026-08-31',
+      initialDate: '2026-09-01',
       events: App.buildCalendarEvents(),
       eventContent: App.renderEventContent,
       eventClick: App.handleEventClick,
@@ -588,7 +587,12 @@ const App = {
     const container = document.getElementById('hoursCounter');
     if (!container) return;
 
-    // Calculer les heures posées par (teaching_id, type)
+    if (App.isAdmin && !App.filterTeacherId) {
+      container.innerHTML = '<p class="text-muted" style="font-size:12px">Sélectionnez un enseignant dans le filtre pour voir son décompte d\'heures.</p>';
+      return;
+    }
+
+    // Calculer les heures posées par (teaching_id, type) pour l'enseignant affiché
     const placed = {};
     App.sessions.forEach(s => {
       if (!s.teaching_id) return;
@@ -597,13 +601,11 @@ const App = {
     });
 
     // Grouper les assignments par module
-    const myAssignments = App.isAdmin && !App.filterTeacherId
-      ? App.assignments
-      : App.assignments.filter(a =>
-          App.filterTeacherId
-            ? a.teacher_id === App.filterTeacherId
-            : a.teacher_id === App.teacher.id
-        );
+    const myAssignments = App.assignments.filter(a =>
+      App.filterTeacherId
+        ? a.teacher_id === App.filterTeacherId
+        : a.teacher_id === App.teacher.id
+    );
 
     const byModule = {};
     myAssignments.forEach(a => {
