@@ -63,7 +63,9 @@ CREATE TABLE sessions (
   student_group TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_times CHECK (start_time < end_time),
+  CONSTRAINT chk_date_range CHECK (session_date >= '2026-08-31' AND session_date <= '2027-07-31')
 );
 
 -- Demandes de modification / suppression
@@ -100,13 +102,13 @@ ALTER TABLE sessions             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE modification_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE centre_periods       ENABLE ROW LEVEL SECURITY;
 
--- Lecture publique des données de référence
-CREATE POLICY "read_modules"      ON modules              FOR SELECT USING (true);
-CREATE POLICY "read_teachings"    ON teachings            FOR SELECT USING (true);
-CREATE POLICY "read_teachers"     ON teachers             FOR SELECT USING (true);
-CREATE POLICY "read_assignments"  ON teaching_assignments FOR SELECT USING (true);
-CREATE POLICY "read_periods"      ON centre_periods       FOR SELECT USING (true);
-CREATE POLICY "read_sessions"     ON sessions             FOR SELECT USING (true);
+-- Lecture restreinte aux utilisateurs authentifiés
+CREATE POLICY "read_modules"      ON modules              FOR SELECT TO authenticated USING (true);
+CREATE POLICY "read_teachings"    ON teachings            FOR SELECT TO authenticated USING (true);
+CREATE POLICY "read_teachers"     ON teachers             FOR SELECT TO authenticated USING (true);
+CREATE POLICY "read_assignments"  ON teaching_assignments FOR SELECT TO authenticated USING (true);
+CREATE POLICY "read_periods"      ON centre_periods       FOR SELECT TO authenticated USING (true);
+CREATE POLICY "read_sessions"     ON sessions             FOR SELECT TO authenticated USING (true);
 
 -- Enseignants : insérer leurs propres séances
 CREATE POLICY "insert_own_sessions" ON sessions
@@ -115,11 +117,16 @@ CREATE POLICY "insert_own_sessions" ON sessions
     teacher_id IN (SELECT id FROM teachers WHERE email = auth.email())
   );
 
--- Enseignants : insérer des demandes de modification
+-- Enseignants : insérer des demandes de modification (uniquement sur leurs propres séances)
 CREATE POLICY "insert_own_requests" ON modification_requests
   FOR INSERT TO authenticated
   WITH CHECK (
     teacher_id IN (SELECT id FROM teachers WHERE email = auth.email())
+    AND session_id IN (
+      SELECT id FROM sessions WHERE teacher_id IN (
+        SELECT id FROM teachers WHERE email = auth.email()
+      )
+    )
   );
 
 -- Modification requests : lecture de ses propres demandes (+ admin voit tout)

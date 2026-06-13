@@ -59,10 +59,17 @@ async function requireAuth() {
   if (!teacher) {
     showToast('Accès non autorisé. Contactez l\'administrateur.', 'danger');
     await getClient().auth.signOut();
-    setTimeout(() => { window.location.href = 'index.html'; }, 30000);
+    setTimeout(() => { window.location.href = 'index.html'; }, 3000);
     return null;
   }
   return { session, teacher };
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function showToast(message, type = 'info') {
@@ -74,7 +81,7 @@ function showToast(message, type = 'info') {
   container.insertAdjacentHTML('beforeend', `
     <div id="${id}" class="toast align-items-center text-white ${bg} border-0" role="alert" data-bs-autohide="true" data-bs-delay="4000">
       <div class="d-flex">
-        <div class="toast-body">${message}</div>
+        <div class="toast-body">${escapeHtml(message)}</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
     </div>`);

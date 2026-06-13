@@ -46,9 +46,12 @@ const App = {
     if (App.isAdmin) await App.loadRequests();
 
     // Écouter les changements temps réel
-    App.db.channel('sessions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => App.refresh())
-      .subscribe();
+    const realtimeChannel = App.isAdmin
+      ? App.db.channel('sessions-admin')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => App.refresh())
+      : App.db.channel('sessions-teacher')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `teacher_id=eq.${App.teacher.id}` }, () => App.refresh());
+    realtimeChannel.subscribe();
   },
 
   async loadReferenceData() {
@@ -205,13 +208,13 @@ const App = {
     const short = mins <= 60;
 
     if (short) {
-      return { html: `<div class="fc-event-main"><span class="event-module">${moduleCode || 'Divers'}</span> <span class="event-type-badge">${s.session_type}</span></div>` };
+      return { html: `<div class="fc-event-main"><span class="event-module">${escapeHtml(moduleCode || 'Divers')}</span> <span class="event-type-badge">${escapeHtml(s.session_type)}</span></div>` };
     }
     return {
       html: `<div class="fc-event-main">
-        <div class="event-module">${moduleCode || 'Divers'} <span class="event-type-badge">${s.session_type}</span></div>
-        <div class="event-teaching">${teachingTitle}</div>
-        <div class="event-teacher">${teacherName}</div>
+        <div class="event-module">${escapeHtml(moduleCode || 'Divers')} <span class="event-type-badge">${escapeHtml(s.session_type)}</span></div>
+        <div class="event-teaching">${escapeHtml(teachingTitle)}</div>
+        <div class="event-teacher">${escapeHtml(teacherName)}</div>
       </div>`
     };
   },
@@ -275,7 +278,7 @@ const App = {
       : App.modules.filter(m => myModuleIds.includes(m.id));
 
     modSelect.innerHTML = '<option value="">— Sélectionner un module —</option>'
-      + visibleModules.map(m => `<option value="${m.id}" ${session?.teaching?.module?.id === m.id ? 'selected' : ''}>${m.code} — ${m.title}</option>`).join('')
+      + visibleModules.map(m => `<option value="${escapeHtml(m.id)}" ${session?.teaching?.module?.id === m.id ? 'selected' : ''}>${escapeHtml(m.code)} — ${escapeHtml(m.title)}</option>`).join('')
       + `<option value="divers" ${!session?.teaching_id ? 'selected' : ''}>Divers (hors module)</option>`;
 
     App.onModuleChange(session?.teaching?.module?.id || '', session?.teaching_id || '');
@@ -291,7 +294,7 @@ const App = {
       teacherWrap.classList.remove('d-none');
       const teacherSelect = document.getElementById('fTeacher');
       teacherSelect.innerHTML = App.teachers.map(t =>
-        `<option value="${t.id}" ${t.id === (session?.teacher_id || App.teacher.id) ? 'selected' : ''}>${t.name}</option>`
+        `<option value="${escapeHtml(t.id)}" ${t.id === (session?.teacher_id || App.teacher.id) ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
       ).join('');
     } else {
       teacherWrap.classList.add('d-none');
@@ -313,7 +316,7 @@ const App = {
           App.assignments.some(a => a.teaching?.id === t.id)
         );
     teachingSelect.innerHTML = '<option value="">— Sélectionner un enseignement —</option>'
-      + teachings.map(t => `<option value="${t.id}" ${t.id === preselectedTeachingId ? 'selected' : ''}>${t.title}</option>`).join('');
+      + teachings.map(t => `<option value="${escapeHtml(t.id)}" ${t.id === preselectedTeachingId ? 'selected' : ''}>${escapeHtml(t.title)}</option>`).join('');
   },
 
   async saveSession() {
@@ -511,8 +514,8 @@ const App = {
       if (totals.tp > 0) pills.push(App.hoursPill('TP', done.tp, totals.tp));
 
       html += `<div class="module-block">
-        <div class="module-code">${code}</div>
-        <div class="module-title">${module?.title || ''}</div>
+        <div class="module-code">${escapeHtml(code)}</div>
+        <div class="module-title">${escapeHtml(module?.title || '')}</div>
         <div class="hours-row">${pills.join('')}</div>
       </div>`;
     });
@@ -534,7 +537,7 @@ const App = {
     const sel = document.getElementById('teacherFilter');
     if (!sel) return;
     sel.innerHTML = '<option value="">Tous les enseignants</option>'
-      + App.teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      + App.teachers.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
     sel.onchange = async () => {
       App.filterTeacherId = sel.value || null;
       await App.loadSessions();
@@ -590,8 +593,8 @@ const App = {
         <th>TP prévu</th><th>TP posé</th>
       </tr></thead>
       <tbody>${rows.map(r => `<tr>
-        <td><strong>${r.mod?.code}</strong></td>
-        <td>${r.teacher?.name}</td>
+        <td><strong>${escapeHtml(r.mod?.code)}</strong></td>
+        <td>${escapeHtml(r.teacher?.name)}</td>
         <td>${r.a.cm_hours}h</td><td class="${r.cm_done > r.a.cm_hours ? 'text-danger fw-bold' : r.cm_done >= r.a.cm_hours && r.a.cm_hours > 0 ? 'text-success' : ''}">${r.cm_done.toFixed(1)}h</td>
         <td>${r.a.td_hours}h</td><td class="${r.td_done > r.a.td_hours ? 'text-danger fw-bold' : r.td_done >= r.a.td_hours && r.a.td_hours > 0 ? 'text-success' : ''}">${r.td_done.toFixed(1)}h</td>
         <td>${r.a.tp_hours}h</td><td class="${r.tp_done > r.a.tp_hours ? 'text-danger fw-bold' : r.tp_done >= r.a.tp_hours && r.a.tp_hours > 0 ? 'text-success' : ''}">${r.tp_done.toFixed(1)}h</td>
@@ -613,7 +616,7 @@ const App = {
           <div class="d-flex justify-content-between align-items-start">
             <div>
               <span class="badge ${r.action_type === 'delete' ? 'bg-danger' : 'bg-warning text-dark'} me-1">${r.action_type === 'delete' ? 'Suppression' : 'Modification'}</span>
-              <strong>${r.teacher?.name}</strong>
+              <strong>${escapeHtml(r.teacher?.name)}</strong>
               <div class="text-muted" style="font-size:11px">${formatDate(s.session_date)} ${formatTime(s.start_time)}–${formatTime(s.end_time)}</div>
               ${r.action_type === 'modify' && r.new_data ? `<div style="font-size:11px" class="text-info">→ ${formatDate(r.new_data.session_date)} ${formatTime(r.new_data.start_time)}–${formatTime(r.new_data.end_time)}</div>` : ''}
             </div>
@@ -633,7 +636,9 @@ const App = {
     if (req.action_type === 'delete') {
       await App.db.from('sessions').delete().eq('id', req.session_id);
     } else if (req.action_type === 'modify' && req.new_data) {
-      await App.db.from('sessions').update(req.new_data).eq('id', req.session_id);
+      const allowed = ['teaching_id', 'session_date', 'start_time', 'end_time', 'session_type', 'room', 'student_group', 'notes'];
+      const safeData = Object.fromEntries(Object.entries(req.new_data).filter(([k]) => allowed.includes(k)));
+      await App.db.from('sessions').update(safeData).eq('id', req.session_id);
     }
     await App.db.from('modification_requests').update({ status: 'approved' }).eq('id', requestId);
     showToast('Demande approuvée.', 'success');
@@ -659,9 +664,9 @@ const App = {
         <thead><tr><th>Nom</th><th>Type</th><th>Email</th><th>Admin</th><th></th></tr></thead>
         <tbody>
           ${App.teachers.map(t => `<tr>
-            <td>${t.name}</td>
-            <td><span class="badge ${t.teacher_type === 'CNAM' ? 'bg-primary' : 'bg-secondary'}">${t.teacher_type}</span></td>
-            <td><small class="${t.email ? '' : 'text-danger'}">${t.email || '⚠ non renseigné'}</small></td>
+            <td>${escapeHtml(t.name)}</td>
+            <td><span class="badge ${t.teacher_type === 'CNAM' ? 'bg-primary' : 'bg-secondary'}">${escapeHtml(t.teacher_type)}</span></td>
+            <td><small class="${t.email ? '' : 'text-danger'}">${escapeHtml(t.email) || '⚠ non renseigné'}</small></td>
             <td>${t.is_admin ? '<i class="bi bi-shield-check text-success"></i>' : ''}</td>
             <td><button class="btn btn-sm btn-outline-primary" onclick="App.openEditTeacherModal('${t.id}')"><i class="bi bi-pencil"></i></button></td>
           </tr>`).join('')}
