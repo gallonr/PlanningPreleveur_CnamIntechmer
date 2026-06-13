@@ -23,8 +23,8 @@ const CONFIG = {
   calendarEnd:   '2027-07-30',
 
   // Durées de créneaux autorisées (minutes)
-  slotDurations: [60, 90, 120, 180, 210, 240],
-  slotLabels:    ['1h', '1h30', '2h', '3h', '3h30', '4h'],
+  slotDurations: [60, 90, 120, 150, 180, 210, 240],
+  slotLabels:    ['1h', '1h30', '2h', '2h30', '3h', '3h30', '4h'],
 
   // Couleurs des types de séances
   sessionColors: {
