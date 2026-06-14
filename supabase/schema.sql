@@ -353,19 +353,19 @@ JOIN teachers te ON te.name = 'Sofiène TLILI'
 WHERE m.code = 'STM023' AND t.title = 'Analyse des paramètres physico-chimiques';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 16, 2, 14
+SELECT t.id, te.id, 6, 1, 5
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Régis GALLON'
 WHERE m.code = 'STM023' AND t.title = 'Analyse en biologie marine';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 16, 2, 14
+SELECT t.id, te.id, 6, 1, 5
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Isabelle POIRIER'
 WHERE m.code = 'STM023' AND t.title = 'Analyse en biologie marine';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 16, 2, 14
+SELECT t.id, te.id, 4, 0, 4
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Claire LAGUIONIE'
 WHERE m.code = 'STM023' AND t.title = 'Analyse en biologie marine';
@@ -377,13 +377,13 @@ JOIN teachers te ON te.name = 'Gwendoline GRÉGOIRE'
 WHERE m.code = 'STM023' AND t.title = 'Analyse en sédimentologie';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 0, 10, 10
+SELECT t.id, te.id, 0, 5, 5
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Régis GALLON'
 WHERE m.code = 'STM023' AND t.title = 'Traitement des données, mathématiques et cartographie';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 0, 10, 10
+SELECT t.id, te.id, 0, 5, 5
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Gwendoline GRÉGOIRE'
 WHERE m.code = 'STM023' AND t.title = 'Traitement des données, mathématiques et cartographie';
@@ -403,19 +403,19 @@ WHERE m.code = 'STM024' AND t.title = 'Métrologie';
 
 -- STM025
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 36, 6, 0
+SELECT t.id, te.id, 12, 2, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Régis GALLON'
 WHERE m.code = 'STM025' AND t.title = 'Biologie (microbiologie / faune / flore)';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 36, 6, 0
+SELECT t.id, te.id, 12, 2, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Isabelle POIRIER'
 WHERE m.code = 'STM025' AND t.title = 'Biologie (microbiologie / faune / flore)';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 36, 6, 0
+SELECT t.id, te.id, 12, 2, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Claire LAGUIONIE'
 WHERE m.code = 'STM025' AND t.title = 'Biologie (microbiologie / faune / flore)';
@@ -446,13 +446,13 @@ JOIN teachers te ON te.name = 'Marjorie LORMELET'
 WHERE m.code = 'STM026' AND t.title = 'Analyse et suivi de la qualité environnementale';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 14, 8, 0
+SELECT t.id, te.id, 7, 4, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Frederik CHEVALLIER'
 WHERE m.code = 'STM026' AND t.title = 'Préservation de la biodiversité';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 14, 8, 0
+SELECT t.id, te.id, 7, 4, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Lisa LEFRANCOIS'
 WHERE m.code = 'STM026' AND t.title = 'Préservation de la biodiversité';

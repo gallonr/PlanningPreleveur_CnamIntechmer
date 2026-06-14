@@ -38,3 +38,20 @@ ALTER TABLE sessions ADD CONSTRAINT chk_times CHECK (start_time < end_time);
 ALTER TABLE sessions DROP CONSTRAINT IF EXISTS chk_date_range;
 ALTER TABLE sessions ADD CONSTRAINT chk_date_range
   CHECK (session_date >= '2026-08-31' AND session_date <= '2027-07-31');
+
+-- 4. Fonction RPC accessible sans authentification (anon)
+--    Permet de vérifier qu'un email est dans la table teachers
+--    avant d'envoyer l'OTP, sans exposer la liste complète des emails.
+CREATE OR REPLACE FUNCTION is_teacher_email(p_email TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM teachers WHERE lower(email) = lower(p_email)
+  );
+$$;
+
+-- Autoriser l'appel depuis le client anonyme (non connecté)
+GRANT EXECUTE ON FUNCTION is_teacher_email(TEXT) TO anon;
