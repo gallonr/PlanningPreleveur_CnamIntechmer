@@ -220,11 +220,15 @@ SELECT id, 'Techniques de conditionnement et stockage', 3 FROM modules WHERE cod
 INSERT INTO teachings (module_id, title, sort_order)
 SELECT id, 'Analyse des paramètres physico-chimiques', 1 FROM modules WHERE code = 'STM023';
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Analyse en biologie marine', 2 FROM modules WHERE code = 'STM023';
+SELECT id, 'Faune', 2 FROM modules WHERE code = 'STM023';
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Analyse en sédimentologie', 3 FROM modules WHERE code = 'STM023';
+SELECT id, 'Flore', 3 FROM modules WHERE code = 'STM023';
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Traitement des données, mathématiques et cartographie', 4 FROM modules WHERE code = 'STM023';
+SELECT id, 'Microbiologie', 4 FROM modules WHERE code = 'STM023';
+INSERT INTO teachings (module_id, title, sort_order)
+SELECT id, 'Analyse en sédimentologie', 5 FROM modules WHERE code = 'STM023';
+INSERT INTO teachings (module_id, title, sort_order)
+SELECT id, 'Traitement des données, mathématiques et cartographie', 6 FROM modules WHERE code = 'STM023';
 
 -- Enseignements STM024
 INSERT INTO teachings (module_id, title, sort_order)
@@ -236,13 +240,17 @@ SELECT id, 'Métrologie', 3 FROM modules WHERE code = 'STM024';
 
 -- Enseignements STM025
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Biologie (microbiologie / faune / flore)', 1 FROM modules WHERE code = 'STM025';
+SELECT id, 'Faune', 1 FROM modules WHERE code = 'STM025';
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Chimie de l''eau', 2 FROM modules WHERE code = 'STM025';
+SELECT id, 'Flore', 2 FROM modules WHERE code = 'STM025';
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Physique de l''environnement', 3 FROM modules WHERE code = 'STM025';
+SELECT id, 'Microbiologie', 3 FROM modules WHERE code = 'STM025';
 INSERT INTO teachings (module_id, title, sort_order)
-SELECT id, 'Géologie de l''environnement', 4 FROM modules WHERE code = 'STM025';
+SELECT id, 'Chimie de l''eau', 4 FROM modules WHERE code = 'STM025';
+INSERT INTO teachings (module_id, title, sort_order)
+SELECT id, 'Physique de l''environnement', 5 FROM modules WHERE code = 'STM025';
+INSERT INTO teachings (module_id, title, sort_order)
+SELECT id, 'Géologie de l''environnement', 6 FROM modules WHERE code = 'STM025';
 
 -- Enseignements STM026
 INSERT INTO teachings (module_id, title, sort_order)
@@ -353,22 +361,22 @@ JOIN teachers te ON te.name = 'Sofiène TLILI'
 WHERE m.code = 'STM023' AND t.title = 'Analyse des paramètres physico-chimiques';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
+SELECT t.id, te.id, 4, 0, 4
+FROM teachings t JOIN modules m ON t.module_id = m.id
+JOIN teachers te ON te.name = 'Claire LAGUIONIE'
+WHERE m.code = 'STM023' AND t.title = 'Faune';
+
+INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
 SELECT t.id, te.id, 6, 1, 5
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Régis GALLON'
-WHERE m.code = 'STM023' AND t.title = 'Analyse en biologie marine';
+WHERE m.code = 'STM023' AND t.title = 'Flore';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
 SELECT t.id, te.id, 6, 1, 5
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Isabelle POIRIER'
-WHERE m.code = 'STM023' AND t.title = 'Analyse en biologie marine';
-
-INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 4, 0, 4
-FROM teachings t JOIN modules m ON t.module_id = m.id
-JOIN teachers te ON te.name = 'Claire LAGUIONIE'
-WHERE m.code = 'STM023' AND t.title = 'Analyse en biologie marine';
+WHERE m.code = 'STM023' AND t.title = 'Microbiologie';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
 SELECT t.id, te.id, 12, 2, 8
@@ -405,20 +413,20 @@ WHERE m.code = 'STM024' AND t.title = 'Métrologie';
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
 SELECT t.id, te.id, 12, 2, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
+JOIN teachers te ON te.name = 'Claire LAGUIONIE'
+WHERE m.code = 'STM025' AND t.title = 'Faune';
+
+INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
+SELECT t.id, te.id, 12, 2, 0
+FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Régis GALLON'
-WHERE m.code = 'STM025' AND t.title = 'Biologie (microbiologie / faune / flore)';
+WHERE m.code = 'STM025' AND t.title = 'Flore';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
 SELECT t.id, te.id, 12, 2, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Isabelle POIRIER'
-WHERE m.code = 'STM025' AND t.title = 'Biologie (microbiologie / faune / flore)';
-
-INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
-SELECT t.id, te.id, 12, 2, 0
-FROM teachings t JOIN modules m ON t.module_id = m.id
-JOIN teachers te ON te.name = 'Claire LAGUIONIE'
-WHERE m.code = 'STM025' AND t.title = 'Biologie (microbiologie / faune / flore)';
+WHERE m.code = 'STM025' AND t.title = 'Microbiologie';
 
 INSERT INTO teaching_assignments (teaching_id, teacher_id, cm_hours, td_hours, tp_hours)
 SELECT t.id, te.id, 14, 6, 0
