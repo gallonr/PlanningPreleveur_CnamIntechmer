@@ -981,21 +981,26 @@ const App = {
     }
   },
 
+  _qrToImgSrc(url, size, callback) {
+    // Canvas hors-DOM : jamais display:none, toCanvas fonctionne toujours
+    const tmp = document.createElement('canvas');
+    QRCode.toCanvas(tmp, url, { width: size, margin: 2 }, (err) => {
+      if (!err) callback(tmp.toDataURL('image/png'));
+    });
+  },
+
   renderQR(sessionId, token) {
+    if (typeof QRCode === 'undefined') return;
     const url = CONFIG.appUrl + `attendance.html?token=${token}`;
 
-    // Petit canvas dans le widget
+    // Petit canvas dans le widget (visible, toCanvas direct)
     const el = document.getElementById(`qr-canvas-${sessionId}`);
-    if (el && typeof QRCode !== 'undefined') {
-      QRCode.toCanvas(el, url, { width: 180, margin: 2 }, () => {});
-    }
+    if (el) QRCode.toCanvas(el, url, { width: 180, margin: 2 }, () => {});
 
-    // Image plein écran (toDataURL insensible à la visibilité de l'élément)
+    // Image plein écran via canvas hors-DOM
     const imgEl = document.getElementById('qr-img-fullscreen');
-    if (imgEl && App._qrFullscreenSessionId === sessionId && typeof QRCode !== 'undefined') {
-      QRCode.toDataURL(url, { width: 420, margin: 2 }, (err, dataUrl) => {
-        if (!err) imgEl.src = dataUrl;
-      });
+    if (imgEl && App._qrFullscreenSessionId === sessionId) {
+      App._qrToImgSrc(url, 420, (src) => { imgEl.src = src; });
     }
   },
 
@@ -1012,15 +1017,13 @@ const App = {
         <span class="ms-3 text-white-50" style="font-size:1rem">${session.start_time.slice(0,5)} – ${session.end_time.slice(0,5)}</span>`;
     }
 
-    // Générer l'image QR (toDataURL fonctionne même avant affichage)
+    // Générer l'image via canvas hors-DOM (avant même l'ouverture de la modale)
     const token = App.attTokens[sessionId];
     if (token && typeof QRCode !== 'undefined') {
       const url = CONFIG.appUrl + `attendance.html?token=${token}`;
-      QRCode.toDataURL(url, { width: 420, margin: 2 }, (err, dataUrl) => {
-        if (!err) {
-          const imgEl = document.getElementById('qr-img-fullscreen');
-          if (imgEl) imgEl.src = dataUrl;
-        }
+      App._qrToImgSrc(url, 420, (src) => {
+        const imgEl = document.getElementById('qr-img-fullscreen');
+        if (imgEl) imgEl.src = src;
       });
     }
 
