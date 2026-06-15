@@ -871,11 +871,14 @@ const App = {
     const visibleDate = App.calendar?.getDate();
     if (!visibleDate) return;
     const monday = new Date(visibleDate);
-    monday.setDate(monday.getDate() - monday.getDay() + 1);
-    const mondayStr = monday.toISOString().split('T')[0];
+    const day = monday.getDay();
+    monday.setDate(monday.getDate() - (day === 0 ? 6 : day - 1));
+    const pad = n => String(n).padStart(2, '0');
+    const localStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const mondayStr = localStr(monday);
     const friday = new Date(monday);
     friday.setDate(friday.getDate() + 4);
-    const fridayStr = friday.toISOString().split('T')[0];
+    const fridayStr = localStr(friday);
     const weekSessions = App.sessions.filter(s => s.session_date >= mondayStr && s.session_date <= fridayStr);
     const label = `Semaine du ${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
     exportWeeklyPDF(label, mondayStr, weekSessions, App.teachers);
