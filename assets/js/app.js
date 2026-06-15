@@ -974,6 +974,15 @@ const App = {
   async startAttendanceSession(session) {
     await App.rotateToken(session.id);
     App.attIntervals[session.id] = setInterval(() => App.rotateToken(session.id), 120000);
+
+    // Polling rapide toutes les 5s pour mise à jour fiable de la liste de présence
+    App.attPollIntervals = App.attPollIntervals || {};
+    App.attPollIntervals[session.id] = setInterval(() => {
+      const widget = document.getElementById(`att-widget-${session.id}`);
+      if (widget) App.updateAttendanceWidget(session, widget);
+    }, 5000);
+
+    // Realtime Supabase : mise à jour instantanée en plus du polling
     const channel = App.db.channel(`att-${session.id}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'attendances',
@@ -1182,6 +1191,11 @@ const App = {
     if (App.attIntervals[sessionId]) {
       clearInterval(App.attIntervals[sessionId]);
       delete App.attIntervals[sessionId];
+    }
+    App.attPollIntervals = App.attPollIntervals || {};
+    if (App.attPollIntervals[sessionId]) {
+      clearInterval(App.attPollIntervals[sessionId]);
+      delete App.attPollIntervals[sessionId];
     }
     if (App.attChannels[sessionId]) {
       App.db.removeChannel(App.attChannels[sessionId]);
