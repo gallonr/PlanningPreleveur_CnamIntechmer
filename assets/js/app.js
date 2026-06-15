@@ -856,13 +856,15 @@ const App = {
   // ---- Export ----
 
   exportMine() {
-    const mySessions = App.sessions.filter(s => s.teacher_id === App.teacher.id);
-    exportTeacherPDF(App.teacher, mySessions, App.assignments);
+    const target = App.filterTeacherId ? App.teachers.find(t => t.id === App.filterTeacherId) : App.teacher;
+    const sessions = App.sessions.filter(s => s.teacher_id === target.id);
+    exportTeacherPDF(target, sessions, App.assignments);
   },
 
   exportMineExcel() {
-    const mySessions = App.sessions.filter(s => s.teacher_id === App.teacher.id);
-    exportTeacherExcel(App.teacher, mySessions);
+    const target = App.filterTeacherId ? App.teachers.find(t => t.id === App.filterTeacherId) : App.teacher;
+    const sessions = App.sessions.filter(s => s.teacher_id === target.id);
+    exportTeacherExcel(target, sessions);
   },
 
   exportWeekPDF() {
