@@ -983,14 +983,29 @@ const App = {
 
   _renderFullscreenQR(sessionId) {
     const token = App.attTokens[sessionId];
-    const imgEl = document.getElementById('qr-img-fullscreen');
-    if (!token || !imgEl || typeof QRCode === 'undefined') return;
+    const container = document.getElementById('qr-svg-fullscreen');
+    if (!token || !container) return;
     const url = CONFIG.appUrl + `attendance.html?token=${token}`;
-    // SVG : aucune dépendance canvas/DOM, fonctionne qu'importe la visibilité
-    QRCode.toString(url, { type: 'svg', margin: 2 }, (err, svgStr) => {
-      if (err) { console.error('QR SVG error:', err); return; }
-      imgEl.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-    });
+
+    if (typeof QRCode !== 'undefined' && typeof QRCode.toString === 'function') {
+      // Injection SVG directe : aucune dépendance canvas, img src ou DOM visibility
+      QRCode.toString(url, { type: 'svg', margin: 2, width: 400 }, (err, svgStr) => {
+        if (err) { console.error('QRCode.toString error:', err); App._renderFullscreenQRFallback(container, url); return; }
+        // Forcer fond blanc sur le SVG pour lisibilité
+        const svg = svgStr.replace('<svg ', '<svg style="background:#fff;border-radius:12px" ');
+        container.innerHTML = svg;
+      });
+    } else {
+      console.warn('QRCode library not available, using fallback');
+      App._renderFullscreenQRFallback(container, url);
+    }
+  },
+
+  _renderFullscreenQRFallback(container, url) {
+    // Fallback : service QR externe si la lib échoue
+    const encoded = encodeURIComponent(url);
+    container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encoded}"
+      style="width:400px;height:400px;border-radius:12px;display:block" alt="QR code">`;
   },
 
   renderQR(sessionId, token) {
