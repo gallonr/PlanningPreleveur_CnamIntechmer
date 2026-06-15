@@ -1080,6 +1080,241 @@ const App = {
     }
     delete App.attTokens[sessionId];
   },
+
+  // ============================================================
+  // ADMIN — Panneau Présences
+  // ============================================================
+
+  presView: 'session', // 'session' | 'student' | 'stats'
+
+  switchPresView(view) {
+    App.presView = view;
+    ['session', 'student', 'stats'].forEach(v => {
+      const id = `presViewBy${v.charAt(0).toUpperCase() + v.slice(1)}`;
+      const btn = document.getElementById(id);
+      if (btn) btn.classList.toggle('active', v === view);
+    });
+    App.renderAdminPresences();
+  },
+
+  async renderAdminPresences() {
+    if (!App.isAdmin) return;
+    const container = document.getElementById('presencesContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></div>';
+
+    if (App.presView === 'session') await App.renderPresencesBySession(container);
+    if (App.presView === 'student') await App.renderPresencesByStudent(container);
+    if (App.presView === 'stats')   await App.renderPresencesStats(container);
+
+    App.renderStudentsList();
+  },
+
+  async renderPresencesBySession(container) {
+    const today = new Date().toISOString().split('T')[0];
+    container.innerHTML = `
+      <div class="d-flex gap-2 mb-3 align-items-center">
+        <label class="form-label mb-0 small">Date :</label>
+        <input type="date" id="presDateFilter" class="form-control form-control-sm" style="width:auto"
+               value="${today}" onchange="App.loadPresenceForDate(this.value)">
+      </div>
+      <div id="presSessionList"></div>`;
+    App.loadPresenceForDate(today);
+  },
+
+  async loadPresenceForDate(dateStr) {
+    const list = document.getElementById('presSessionList');
+    if (!list) return;
+
+    const daySessions = App.sessions.filter(s => s.session_date === dateStr);
+    if (daySessions.length === 0) {
+      list.innerHTML = '<p class="text-muted small">Aucune séance ce jour.</p>';
+      return;
+    }
+
+    const sessionIds = daySessions.map(s => s.id);
+    const { data: atts } = await App.db
+      .from('attendances')
+      .select('session_id, student_id, signed_at, signed_by_admin, signature_data')
+      .in('session_id', sessionIds);
+
+    list.innerHTML = daySessions.map(session => {
+      const teaching = App.teachings.find(t => t.id === session.teaching_id);
+      const teacher  = App.teachers.find(t => t.id === session.teacher_id);
+      const sessAtts = (atts || []).filter(a => a.session_id === session.id);
+      const signedIds = new Set(sessAtts.map(a => a.student_id));
+      const present  = App.attStudents.filter(s => signedIds.has(s.id));
+      const absent   = App.attStudents.filter(s => !signedIds.has(s.id));
+
+      return `
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <div>
+              <strong>${escapeHtml(teaching?.title || 'Séance')}</strong>
+              <span class="text-muted small ms-2">${session.start_time.slice(0,5)}–${session.end_time.slice(0,5)}</span>
+              <span class="badge bg-secondary ms-1">${escapeHtml(session.session_type)}</span>
+              <span class="text-muted small ms-1">— ${escapeHtml(teacher?.name || '')}</span>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 7px"
+                      onclick="exportFilledAttendancePDF('${session.id}')">
+                <i class="bi bi-file-pdf me-1"></i>Remplie
+              </button>
+              <button class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 7px"
+                      onclick="exportBlankAttendancePDFForSession('${session.id}')">
+                <i class="bi bi-file-pdf me-1"></i>Vierge
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-2">
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="text-success small fw-semibold mb-1"><i class="bi bi-check-circle me-1"></i>Présents (${present.length})</div>
+                ${present.map(s => {
+                  const att = sessAtts.find(a => a.student_id === s.id);
+                  return `<div class="d-flex align-items-center gap-1 mb-1" style="font-size:12px">
+                    <span>${escapeHtml(s.name)}</span>
+                    ${att?.signed_by_admin ? '<span class="badge bg-warning-subtle text-warning-emphasis" title="Émargé par admin" style="font-size:9px">admin</span>' : ''}
+                    ${att?.signature_data ? `<img src="${App.svgToDataUrl(att.signature_data)}" height="20" style="border:1px solid #eee;border-radius:3px">` : ''}
+                  </div>`;
+                }).join('') || '<span class="text-muted small">—</span>'}
+              </div>
+              <div class="col-6">
+                <div class="text-danger small fw-semibold mb-1"><i class="bi bi-x-circle me-1"></i>Absents (${absent.length})</div>
+                ${absent.map(s => `<div style="font-size:12px" class="text-danger">${escapeHtml(s.name)}</div>`).join('') || '<span class="text-muted small">—</span>'}
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  svgToDataUrl(svgStr) {
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  },
+
+  async renderPresencesByStudent(container) {
+    const { data: atts } = await App.db
+      .from('attendances')
+      .select('session_id, student_id, signed_at, signed_by_admin');
+
+    const byStudent = {};
+    (atts || []).forEach(a => {
+      if (!byStudent[a.student_id]) byStudent[a.student_id] = [];
+      byStudent[a.student_id].push(a);
+    });
+
+    const totalSessions = App.sessions.length;
+
+    container.innerHTML = App.attStudents.map(student => {
+      const stuAtts  = byStudent[student.id] || [];
+      const absCount = totalSessions - stuAtts.length;
+      const absRate  = totalSessions > 0 ? absCount / totalSessions : 0;
+      const alert    = absRate > CONFIG.ABSENCE_ALERT_THRESHOLD;
+      return `
+        <div class="card mb-2 ${alert ? 'border-danger' : ''}">
+          <div class="card-body py-2 d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${escapeHtml(student.name)}</strong>
+              ${alert ? '<span class="badge bg-danger ms-2">Taux d\'absence élevé</span>' : ''}
+            </div>
+            <div class="text-end">
+              <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                ${stuAtts.length} présence${stuAtts.length > 1 ? 's' : ''}
+              </span>
+              <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle ms-1">
+                ${absCount} absence${absCount > 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  async renderPresencesStats(container) {
+    const { data: atts } = await App.db
+      .from('attendances')
+      .select('session_id, student_id');
+
+    const statsByModule = {};
+    App.sessions.forEach(s => {
+      const teaching = App.teachings.find(t => t.id === s.teaching_id);
+      const mod = teaching?.module?.code || 'DIVERS';
+      if (!statsByModule[mod]) statsByModule[mod] = { sessions: [], label: teaching?.module?.title || mod };
+      statsByModule[mod].sessions.push(s.id);
+    });
+
+    const signedSet = new Set((atts || []).map(a => `${a.session_id}_${a.student_id}`));
+
+    const rows = App.attStudents.map(student => {
+      const cells = Object.keys(statsByModule).map(mod => {
+        const sessIds = statsByModule[mod].sessions;
+        const pres = sessIds.filter(sid => signedSet.has(`${sid}_${student.id}`)).length;
+        const pct  = sessIds.length > 0 ? Math.round(pres / sessIds.length * 100) : null;
+        const color = pct === null ? '' : pct >= 80 ? '#d4edda' : pct >= 60 ? '#fff3cd' : '#f8d7da';
+        return `<td class="text-center" style="font-size:12px;background:${color}">${pct !== null ? pct + '%' : '—'}</td>`;
+      }).join('');
+      return `<tr><td style="font-size:12px;white-space:nowrap">${escapeHtml(student.name)}</td>${cells}</tr>`;
+    }).join('');
+
+    const headers = Object.keys(statsByModule)
+      .map(mod => `<th class="text-center" style="font-size:11px">${escapeHtml(mod)}</th>`).join('');
+
+    container.innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="table table-bordered table-sm">
+          <thead><tr><th>Étudiant</th>${headers}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <small class="text-muted">Taux de présence par module. Rouge &lt; 60%, Orange 60-79%, Vert &ge; 80%.</small>
+      </div>
+      <button class="btn btn-sm btn-outline-success mt-2" onclick="exportAttendanceExcel()">
+        <i class="bi bi-file-excel me-1"></i>Exporter Excel
+      </button>`;
+  },
+
+  renderStudentsList() {
+    const container = document.getElementById('studentsListContainer');
+    if (!container) return;
+    if (App.attStudents.length === 0) {
+      container.innerHTML = '<p class="text-muted small">Aucun étudiant enregistré.</p>';
+      return;
+    }
+    container.innerHTML = `<ul class="list-group list-group-flush">
+      ${App.attStudents.map(s => `
+        <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-0">
+          <span style="font-size:13px">${escapeHtml(s.name)}</span>
+          <button class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:1px 6px"
+                  onclick="App.deleteStudent('${s.id}','${escapeHtml(s.name).replace(/'/g,"\\'")}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </li>`).join('')}
+    </ul>`;
+  },
+
+  openAddStudentModal() {
+    document.getElementById('studentName').value = '';
+    new bootstrap.Modal(document.getElementById('studentModal')).show();
+  },
+
+  async saveStudent() {
+    const name = document.getElementById('studentName').value.trim();
+    if (!name) { alert('Nom requis.'); return; }
+    const { error } = await App.db.from('students').insert({ name });
+    if (error) { showToast('Erreur : ' + error.message, 'danger'); return; }
+    bootstrap.Modal.getInstance(document.getElementById('studentModal'))?.hide();
+    const { data } = await App.db.from('students').select('id, name').order('name');
+    App.attStudents = data || [];
+    App.renderAdminPresences();
+    showToast(`${name} ajouté(e).`, 'success');
+  },
+
+  async deleteStudent(id, name) {
+    if (!confirm(`Supprimer ${name} ? Ses émargements seront perdus.`)) return;
+    await App.db.from('students').delete().eq('id', id);
+    App.attStudents = App.attStudents.filter(s => s.id !== id);
+    App.renderAdminPresences();
+  },
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
