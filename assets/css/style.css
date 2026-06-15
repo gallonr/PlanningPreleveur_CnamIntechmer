@@ -290,3 +290,55 @@ body {
 .dup-date-label:hover  { background: var(--blue-bg); border-color: var(--blue-light); }
 .dup-date-label.selected { background: var(--blue-bg); border-color: var(--blue-mid);
                             color: var(--blue-dark); font-weight: 700; }
+
+/* ============================================================
+   Module émargement
+   ============================================================ */
+
+/* Barre de widgets QR (au-dessus du calendrier) */
+.attendance-widgets-bar {
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Carte d'un widget QR */
+.att-widget {
+  min-width: 340px;
+  max-width: 500px;
+  flex: 1;
+}
+
+.att-widget .card-header {
+  background: #e8f4f8;
+  border-bottom: 1px solid #bee3f8;
+  font-size: 13px;
+}
+
+/* Page attendance.html */
+.attendance-card {
+  max-width: 480px;
+  margin: 1.5rem auto;
+}
+
+#signatureCanvas {
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  width: 100%;
+  height: 160px;
+  touch-action: none;
+  cursor: crosshair;
+  background: #fff;
+  display: block;
+}
+
+/* Bouton extra-small (absent du Bootstrap de base) */
+.btn-xs {
+  padding: 1px 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-radius: 3px;
+}
