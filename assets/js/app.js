@@ -982,10 +982,64 @@ const App = {
   },
 
   renderQR(sessionId, token) {
-    const el = document.getElementById(`qr-canvas-${sessionId}`);
-    if (!el || typeof QRCode === 'undefined') return;
     const url = CONFIG.appUrl + `attendance.html?token=${token}`;
-    QRCode.toCanvas(el, url, { width: 180, margin: 2 }, () => {});
+    const opts = { margin: 2 };
+
+    const el = document.getElementById(`qr-canvas-${sessionId}`);
+    if (el && typeof QRCode !== 'undefined') {
+      QRCode.toCanvas(el, url, { ...opts, width: 180 }, () => {});
+    }
+
+    // Mettre à jour aussi le canvas plein écran si c'est cette séance qui est projetée
+    const fullEl = document.getElementById('qr-canvas-fullscreen');
+    if (fullEl && App._qrFullscreenSessionId === sessionId) {
+      QRCode.toCanvas(fullEl, url, { ...opts, width: 420 }, () => {});
+    }
+  },
+
+  openQRFullscreen(sessionId) {
+    App._qrFullscreenSessionId = sessionId;
+    const teaching = App.teachings.find(t => t.id === App.sessions.find(s => s.id === sessionId)?.teaching_id);
+    const session  = App.sessions.find(s => s.id === sessionId);
+
+    // Titre
+    const titleEl = document.getElementById('qrFullscreenTitle');
+    if (titleEl && session) {
+      const label = teaching ? teaching.title : 'Séance';
+      titleEl.innerHTML = `<span class="badge bg-primary me-2" style="font-size:1rem">${escapeHtml(session.session_type)}</span>${escapeHtml(label)}
+        <span class="ms-3 text-white-50" style="font-size:1rem">${session.start_time.slice(0,5)} – ${session.end_time.slice(0,5)}</span>`;
+    }
+
+    // Générer le grand QR
+    const token = App.attTokens[sessionId];
+    if (token) {
+      const url = CONFIG.appUrl + `attendance.html?token=${token}`;
+      const fullEl = document.getElementById('qr-canvas-fullscreen');
+      if (fullEl && typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(fullEl, url, { width: 420, margin: 2 }, () => {});
+      }
+    }
+
+    // Mettre à jour le compteur
+    App.updateQRFullscreenCounter(sessionId);
+
+    new bootstrap.Modal(document.getElementById('qrFullscreenModal')).show();
+
+    // Rafraîchir le compteur toutes les 5s pendant que la modale est ouverte
+    App._qrFullscreenCounterInterval = setInterval(() => App.updateQRFullscreenCounter(sessionId), 5000);
+    document.getElementById('qrFullscreenModal').addEventListener('hidden.bs.modal', () => {
+      clearInterval(App._qrFullscreenCounterInterval);
+      App._qrFullscreenSessionId = null;
+    }, { once: true });
+  },
+
+  async updateQRFullscreenCounter(sessionId) {
+    const counterEl = document.getElementById('qrFullscreenCounter');
+    if (!counterEl) return;
+    const { data: atts } = await App.db.from('attendances').select('student_id').eq('session_id', sessionId);
+    const presentCount = (atts || []).length;
+    const total = App.attStudents.length;
+    counterEl.innerHTML = `<span class="qr-counter-present">${presentCount}</span> <span class="qr-counter-sep">/</span> <span class="qr-counter-total">${total}</span> <span class="qr-counter-label">présent${presentCount > 1 ? 's' : ''}</span>`;
   },
 
   async updateAttendanceWidget(session, widget) {
@@ -1007,6 +1061,10 @@ const App = {
           <span class="badge bg-success ms-1">${present.length}/${total}</span>
         </strong>
         <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-primary" title="Projeter le QR en grand"
+                  onclick="App.openQRFullscreen('${session.id}')">
+            <i class="bi bi-fullscreen me-1"></i>Projeter
+          </button>
           <button class="btn btn-sm btn-outline-secondary" title="Feuille vierge"
                   onclick="exportBlankAttendancePDFForSession('${session.id}')">
             <i class="bi bi-file-pdf"></i>

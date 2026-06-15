@@ -342,3 +342,51 @@ body {
   line-height: 1.4;
   border-radius: 3px;
 }
+
+/* ============================================================
+   QR plein écran (projection en classe)
+   ============================================================ */
+
+.qr-fullscreen-content {
+  background: #0d1117;
+  color: #fff;
+}
+
+.qr-fullscreen-content .modal-header {
+  background: transparent;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.qr-fullscreen-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.qr-fullscreen-canvas {
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(255,255,255,.15);
+  max-width: min(420px, 70vmin);
+  max-height: min(420px, 70vmin);
+  width: auto !important;
+  height: auto !important;
+}
+
+.qr-fullscreen-counter {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: -1px;
+}
+
+.qr-counter-present  { color: #4ade80; }
+.qr-counter-sep      { color: rgba(255,255,255,.4); margin: 0 .3rem; }
+.qr-counter-total    { color: rgba(255,255,255,.7); }
+.qr-counter-label    { font-size: 1.2rem; font-weight: 400; color: rgba(255,255,255,.6); margin-left: .5rem; }
+
+.qr-fullscreen-hint {
+  margin-top: .5rem;
+  font-size: .85rem;
+  color: rgba(255,255,255,.4);
+}

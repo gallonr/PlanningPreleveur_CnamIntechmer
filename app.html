@@ -471,5 +471,26 @@
     </div>
   </div>
 </div>
+
+<!-- Modal QR plein écran (projection) -->
+<div class="modal fade" id="qrFullscreenModal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content qr-fullscreen-content">
+      <div class="modal-header border-0 pb-0">
+        <div id="qrFullscreenTitle" class="qr-fullscreen-title"></div>
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body d-flex flex-column align-items-center justify-content-center gap-4">
+        <canvas id="qr-canvas-fullscreen" width="420" height="420" class="qr-fullscreen-canvas"></canvas>
+        <div class="text-center">
+          <div id="qrFullscreenCounter" class="qr-fullscreen-counter"></div>
+          <div class="qr-fullscreen-hint">
+            <i class="bi bi-arrow-repeat me-1"></i>QR renouvelé automatiquement toutes les 2 minutes
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
