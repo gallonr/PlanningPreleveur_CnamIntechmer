@@ -107,6 +107,24 @@ body {
 .hours-pill .over   { color: #e74c3c; font-weight: 700; }
 .hours-pill.complete { background: #d5f5e3; border-color: var(--color-td); }
 
+.teaching-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+.teaching-title {
+  font-size: 10px;
+  color: var(--gray);
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
 /* ---- Legend ---- */
 .legend-item {
   display: flex;

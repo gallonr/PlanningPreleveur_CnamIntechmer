@@ -638,26 +638,31 @@ const App = {
 
     let html = '';
     Object.entries(byModule).sort(([a],[b]) => a.localeCompare(b)).forEach(([code, { assignments, module }]) => {
-      const totals = { cm: 0, td: 0, tp: 0 };
-      const done   = { cm: 0, td: 0, tp: 0 };
-      assignments.forEach(a => {
-        totals.cm += a.cm_hours || 0;
-        totals.td += a.td_hours || 0;
-        totals.tp += a.tp_hours || 0;
-        done.cm   += placed[`${a.teaching_id}_CM`]  || 0;
-        done.td   += placed[`${a.teaching_id}_TD`]  || 0;
-        done.tp   += placed[`${a.teaching_id}_TP`]  || 0;
-      });
+      const teachingRows = assignments.map(a => {
+        const totals = { cm: a.cm_hours || 0, td: a.td_hours || 0, tp: a.tp_hours || 0 };
+        const done   = {
+          cm: placed[`${a.teaching_id}_CM`] || 0,
+          td: placed[`${a.teaching_id}_TD`] || 0,
+          tp: placed[`${a.teaching_id}_TP`] || 0,
+        };
+        const pills = [];
+        if (totals.cm > 0) pills.push(App.hoursPill('CM', done.cm, totals.cm));
+        if (totals.td > 0) pills.push(App.hoursPill('TD', done.td, totals.td));
+        if (totals.tp > 0) pills.push(App.hoursPill('TP', done.tp, totals.tp));
+        if (pills.length === 0) return '';
+        const title = a.teaching?.title || '';
+        return `<div class="teaching-row">
+          <span class="teaching-title">${escapeHtml(title)}</span>
+          <span class="hours-row">${pills.join('')}</span>
+        </div>`;
+      }).filter(Boolean).join('');
 
-      const pills = [];
-      if (totals.cm > 0) pills.push(App.hoursPill('CM', done.cm, totals.cm));
-      if (totals.td > 0) pills.push(App.hoursPill('TD', done.td, totals.td));
-      if (totals.tp > 0) pills.push(App.hoursPill('TP', done.tp, totals.tp));
+      if (!teachingRows) return;
 
       html += `<div class="module-block">
         <div class="module-code">${escapeHtml(code)}</div>
         <div class="module-title">${escapeHtml(module?.title || '')}</div>
-        <div class="hours-row">${pills.join('')}</div>
+        ${teachingRows}
       </div>`;
     });
     container.innerHTML = html;
