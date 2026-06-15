@@ -981,26 +981,28 @@ const App = {
     }
   },
 
-  _qrToImgSrc(url, size, callback) {
-    // Canvas hors-DOM : jamais display:none, toCanvas fonctionne toujours
-    const tmp = document.createElement('canvas');
-    QRCode.toCanvas(tmp, url, { width: size, margin: 2 }, (err) => {
-      if (!err) callback(tmp.toDataURL('image/png'));
-    });
+  _renderFullscreenQR(sessionId) {
+    const token = App.attTokens[sessionId];
+    const imgEl = document.getElementById('qr-img-fullscreen');
+    if (!token || !imgEl || typeof QRCode === 'undefined') return;
+    const url = CONFIG.appUrl + `attendance.html?token=${token}`;
+    // Promise-based, ne nécessite aucun élément DOM visible
+    QRCode.toDataURL(url, { width: 420, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
+      .then(dataUrl => { imgEl.src = dataUrl; })
+      .catch(e => console.error('QR fullscreen error:', e));
   },
 
   renderQR(sessionId, token) {
     if (typeof QRCode === 'undefined') return;
     const url = CONFIG.appUrl + `attendance.html?token=${token}`;
 
-    // Petit canvas dans le widget (visible, toCanvas direct)
+    // Petit canvas dans le widget (visible dans le DOM)
     const el = document.getElementById(`qr-canvas-${sessionId}`);
     if (el) QRCode.toCanvas(el, url, { width: 180, margin: 2 }, () => {});
 
-    // Image plein écran via canvas hors-DOM
-    const imgEl = document.getElementById('qr-img-fullscreen');
-    if (imgEl && App._qrFullscreenSessionId === sessionId) {
-      App._qrToImgSrc(url, 420, (src) => { imgEl.src = src; });
+    // Mettre à jour l'image plein écran si cette séance est projetée
+    if (App._qrFullscreenSessionId === sessionId) {
+      App._renderFullscreenQR(sessionId);
     }
   },
 
@@ -1017,22 +1019,19 @@ const App = {
         <span class="ms-3 text-white-50" style="font-size:1rem">${session.start_time.slice(0,5)} – ${session.end_time.slice(0,5)}</span>`;
     }
 
-    // Générer l'image via canvas hors-DOM (avant même l'ouverture de la modale)
-    const token = App.attTokens[sessionId];
-    if (token && typeof QRCode !== 'undefined') {
-      const url = CONFIG.appUrl + `attendance.html?token=${token}`;
-      App._qrToImgSrc(url, 420, (src) => {
-        const imgEl = document.getElementById('qr-img-fullscreen');
-        if (imgEl) imgEl.src = src;
-      });
-    }
+    const modalEl = document.getElementById('qrFullscreenModal');
+
+    // Générer le QR uniquement après que la modale est pleinement visible
+    // (shown.bs.modal = transition CSS terminée, img dans le DOM visible)
+    modalEl.addEventListener('shown.bs.modal', () => {
+      App._renderFullscreenQR(sessionId);
+    }, { once: true });
 
     App.updateQRFullscreenCounter(sessionId);
-
-    new bootstrap.Modal(document.getElementById('qrFullscreenModal')).show();
+    new bootstrap.Modal(modalEl).show();
 
     App._qrFullscreenCounterInterval = setInterval(() => App.updateQRFullscreenCounter(sessionId), 5000);
-    document.getElementById('qrFullscreenModal').addEventListener('hidden.bs.modal', () => {
+    modalEl.addEventListener('hidden.bs.modal', () => {
       clearInterval(App._qrFullscreenCounterInterval);
       App._qrFullscreenSessionId = null;
     }, { once: true });
