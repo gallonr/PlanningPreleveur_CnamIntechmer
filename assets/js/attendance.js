@@ -31,7 +31,8 @@ const Att = {
     Att.sessionInfo = data;
 
     // Charger la liste des étudiants
-    const { data: studs } = await Att.db.from('students').select('id, name').order('name');
+    const { data: studs, error: studsError } = await Att.db.from('students').select('id, name').order('name');
+    if (studsError) { Att.showError('Impossible de charger la liste des étudiants. Vérifiez votre connexion.'); return; }
     Att.students = studs || [];
 
     // Lire identité mémorisée
@@ -70,6 +71,7 @@ const Att = {
   showSelectorScreen() {
     document.getElementById('sessionBadge').innerHTML = Att.buildSessionBadgeHTML();
     const sel = document.getElementById('studentSelect');
+    sel.innerHTML = '<option value="">-- Choisissez votre nom --</option>';
     Att.students.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id;
@@ -83,6 +85,7 @@ const Att = {
     const sel = document.getElementById('studentSelect');
     if (!sel.value) { alert('Veuillez sélectionner votre nom.'); return; }
     const student = Att.students.find(s => s.id === sel.value);
+    if (!student) { alert('Étudiant introuvable. Veuillez réessayer.'); return; }
     Att.studentId   = student.id;
     Att.studentName = student.name;
     localStorage.setItem('attendance_student_id',   Att.studentId);
