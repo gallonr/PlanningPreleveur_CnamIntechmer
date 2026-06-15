@@ -111,7 +111,7 @@ DECLARE
   v_inserted   BIGINT := 0;
 BEGIN
   -- Valider token (non expire)
-  SELECT at.session_id, s.session_date
+  SELECT tok.session_id, s.session_date
     INTO v_session_id, v_date
     FROM attendance_tokens tok
     JOIN sessions s ON s.id = tok.session_id
