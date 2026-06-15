@@ -87,6 +87,8 @@ const App = {
 
   isEnterpriseDate(date) {
     const d = date instanceof Date ? date : new Date(date + 'T00:00:00');
+    // Avant le début de l'année scolaire : jamais en entreprise (période de test / préparation)
+    if (d < new Date(CONFIG.calendarStart + 'T00:00:00')) return false;
     // Trouver le lundi de la semaine
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
