@@ -37,7 +37,7 @@ ALTER TABLE sessions ADD CONSTRAINT chk_times CHECK (start_time < end_time);
 
 ALTER TABLE sessions DROP CONSTRAINT IF EXISTS chk_date_range;
 ALTER TABLE sessions ADD CONSTRAINT chk_date_range
-  CHECK (session_date >= '2026-08-31' AND session_date <= '2027-07-31');
+  CHECK (session_date <= '2027-07-31');
 
 -- 4. Fonction RPC accessible sans authentification (anon)
 --    Permet de vérifier qu'un email est dans la table teachers

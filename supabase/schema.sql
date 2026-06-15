@@ -65,7 +65,7 @@ CREATE TABLE sessions (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT chk_times CHECK (start_time < end_time),
-  CONSTRAINT chk_date_range CHECK (session_date >= '2026-08-31' AND session_date <= '2027-07-31')
+  CONSTRAINT chk_date_range CHECK (session_date <= '2027-07-31')
 );
 
 -- Demandes de modification / suppression
