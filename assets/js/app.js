@@ -661,7 +661,6 @@ const App = {
 
       html += `<div class="module-block">
         <div class="module-code">${escapeHtml(code)}</div>
-        <div class="module-title">${escapeHtml(module?.title || '')}</div>
         ${teachingRows}
       </div>`;
     });
