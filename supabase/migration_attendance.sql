@@ -108,7 +108,7 @@ LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_session_id UUID;
   v_date       DATE;
-  v_inserted   BOOLEAN := FALSE;
+  v_inserted   BIGINT := 0;
 BEGIN
   -- Valider token (non expire)
   SELECT at.session_id, s.session_date
