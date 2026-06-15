@@ -318,6 +318,12 @@ body {
   font-size: 13px;
 }
 
+/* Pill "Réafficher" pour un widget fermé */
+.att-pill {
+  display: flex;
+  align-items: center;
+}
+
 /* Page attendance.html */
 .attendance-card {
   max-width: 960px;

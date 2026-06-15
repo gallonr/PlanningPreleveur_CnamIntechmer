@@ -940,7 +940,24 @@ const App = {
     bar.classList.remove('d-none');
 
     live.forEach(session => {
-      if (App.attOpen[session.id] === false) return;
+      if (App.attOpen[session.id] === false) {
+        // Afficher une pill "Réafficher" à la place du widget
+        let pill = document.getElementById(`att-pill-${session.id}`);
+        if (!pill) {
+          pill = document.createElement('div');
+          pill.id = `att-pill-${session.id}`;
+          pill.className = 'att-pill';
+          bar.appendChild(pill);
+        }
+        const teaching = App.teachings.find(t => t.id === session.teaching_id);
+        const label = teaching ? teaching.title : 'Séance';
+        pill.innerHTML = `<button class="btn btn-sm btn-outline-primary" title="Réafficher le widget d'émargement"
+                onclick="App.reopenAttendanceSession('${session.id}')">
+            <i class="bi bi-qr-code me-1"></i>${label}
+            <i class="bi bi-chevron-down ms-1"></i>
+          </button>`;
+        return;
+      }
       if (!App.attIntervals[session.id]) App.startAttendanceSession(session);
 
       let widget = document.getElementById(`att-widget-${session.id}`);
@@ -1142,8 +1159,23 @@ const App = {
     App.stopAttendanceSession(sessionId);
     const widget = document.getElementById(`att-widget-${sessionId}`);
     if (widget) widget.remove();
+    App.renderAttendanceWidgets();
+  },
+
+  reopenAttendanceSession(sessionId) {
+    App.attOpen[sessionId] = true;
+    const pill = document.getElementById(`att-pill-${sessionId}`);
+    if (pill) pill.remove();
+    const session = App.sessions.find(s => s.id === sessionId);
+    if (!session) return;
     const bar = document.getElementById('attendanceWidgets');
-    if (bar && !bar.querySelector('.att-widget')) bar.classList.add('d-none');
+    if (!bar) return;
+    const widget = document.createElement('div');
+    widget.id = `att-widget-${sessionId}`;
+    widget.className = 'att-widget card shadow-sm';
+    bar.appendChild(widget);
+    App.startAttendanceSession(session);
+    App.updateAttendanceWidget(session, widget);
   },
 
   stopAttendanceSession(sessionId) {
