@@ -25,6 +25,7 @@ const App = {
   // --- Émargement ---
   attIntervals: {},
   attTokens:    {},
+  attChannels:  {},
   attStudents:  [],
   attOpen:      {},
 
@@ -954,7 +955,7 @@ const App = {
   async startAttendanceSession(session) {
     await App.rotateToken(session.id);
     App.attIntervals[session.id] = setInterval(() => App.rotateToken(session.id), 120000);
-    App.db.channel(`att-${session.id}`)
+    const channel = App.db.channel(`att-${session.id}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'attendances',
         filter: `session_id=eq.${session.id}`
@@ -963,6 +964,7 @@ const App = {
         if (widget) App.updateAttendanceWidget(session, widget);
       })
       .subscribe();
+    App.attChannels[session.id] = channel;
   },
 
   async rotateToken(sessionId) {
@@ -1035,7 +1037,7 @@ const App = {
             ${absent.map(s => `<li class="text-danger d-flex align-items-center gap-1">
               <i class="bi bi-dash me-1"></i>${s.name}
               <button class="btn btn-xs btn-outline-secondary ms-auto" style="font-size:10px;padding:1px 5px"
-                      onclick="App.manualSign('${session.id}','${s.id}','${s.name}')">
+                      onclick="App.manualSign('${session.id}','${s.id}')">
                 Émarger
               </button>
             </li>`).join('')}
@@ -1046,7 +1048,9 @@ const App = {
     if (App.attTokens[session.id]) App.renderQR(session.id, App.attTokens[session.id]);
   },
 
-  async manualSign(sessionId, studentId, studentName) {
+  async manualSign(sessionId, studentId) {
+    const student = App.attStudents.find(s => s.id === studentId);
+    const studentName = student ? student.name : studentId;
     if (!confirm(`Émarger manuellement ${studentName} ?`)) return;
     const { error } = await App.db.from('attendances').insert({
       session_id: sessionId, student_id: studentId, signed_by_admin: true
@@ -1069,6 +1073,10 @@ const App = {
     if (App.attIntervals[sessionId]) {
       clearInterval(App.attIntervals[sessionId]);
       delete App.attIntervals[sessionId];
+    }
+    if (App.attChannels[sessionId]) {
+      App.db.removeChannel(App.attChannels[sessionId]);
+      delete App.attChannels[sessionId];
     }
     delete App.attTokens[sessionId];
   },
