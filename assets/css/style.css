@@ -366,10 +366,9 @@ body {
 .qr-fullscreen-canvas {
   border-radius: 16px;
   box-shadow: 0 0 60px rgba(255,255,255,.15);
-  max-width: min(420px, 70vmin);
-  max-height: min(420px, 70vmin);
-  width: auto !important;
-  height: auto !important;
+  width: min(420px, 70vmin);
+  height: min(420px, 70vmin);
+  object-fit: contain;
 }
 
 .qr-fullscreen-counter {

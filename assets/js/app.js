@@ -983,24 +983,26 @@ const App = {
 
   renderQR(sessionId, token) {
     const url = CONFIG.appUrl + `attendance.html?token=${token}`;
-    const opts = { margin: 2 };
 
+    // Petit canvas dans le widget
     const el = document.getElementById(`qr-canvas-${sessionId}`);
     if (el && typeof QRCode !== 'undefined') {
-      QRCode.toCanvas(el, url, { ...opts, width: 180 }, () => {});
+      QRCode.toCanvas(el, url, { width: 180, margin: 2 }, () => {});
     }
 
-    // Mettre à jour aussi le canvas plein écran si c'est cette séance qui est projetée
-    const fullEl = document.getElementById('qr-canvas-fullscreen');
-    if (fullEl && App._qrFullscreenSessionId === sessionId) {
-      QRCode.toCanvas(fullEl, url, { ...opts, width: 420 }, () => {});
+    // Image plein écran (toDataURL insensible à la visibilité de l'élément)
+    const imgEl = document.getElementById('qr-img-fullscreen');
+    if (imgEl && App._qrFullscreenSessionId === sessionId && typeof QRCode !== 'undefined') {
+      QRCode.toDataURL(url, { width: 420, margin: 2 }, (err, dataUrl) => {
+        if (!err) imgEl.src = dataUrl;
+      });
     }
   },
 
   openQRFullscreen(sessionId) {
     App._qrFullscreenSessionId = sessionId;
-    const teaching = App.teachings.find(t => t.id === App.sessions.find(s => s.id === sessionId)?.teaching_id);
     const session  = App.sessions.find(s => s.id === sessionId);
+    const teaching = App.teachings.find(t => t.id === session?.teaching_id);
 
     // Titre
     const titleEl = document.getElementById('qrFullscreenTitle');
@@ -1010,22 +1012,22 @@ const App = {
         <span class="ms-3 text-white-50" style="font-size:1rem">${session.start_time.slice(0,5)} – ${session.end_time.slice(0,5)}</span>`;
     }
 
-    // Générer le grand QR
+    // Générer l'image QR (toDataURL fonctionne même avant affichage)
     const token = App.attTokens[sessionId];
-    if (token) {
+    if (token && typeof QRCode !== 'undefined') {
       const url = CONFIG.appUrl + `attendance.html?token=${token}`;
-      const fullEl = document.getElementById('qr-canvas-fullscreen');
-      if (fullEl && typeof QRCode !== 'undefined') {
-        QRCode.toCanvas(fullEl, url, { width: 420, margin: 2 }, () => {});
-      }
+      QRCode.toDataURL(url, { width: 420, margin: 2 }, (err, dataUrl) => {
+        if (!err) {
+          const imgEl = document.getElementById('qr-img-fullscreen');
+          if (imgEl) imgEl.src = dataUrl;
+        }
+      });
     }
 
-    // Mettre à jour le compteur
     App.updateQRFullscreenCounter(sessionId);
 
     new bootstrap.Modal(document.getElementById('qrFullscreenModal')).show();
 
-    // Rafraîchir le compteur toutes les 5s pendant que la modale est ouverte
     App._qrFullscreenCounterInterval = setInterval(() => App.updateQRFullscreenCounter(sessionId), 5000);
     document.getElementById('qrFullscreenModal').addEventListener('hidden.bs.modal', () => {
       clearInterval(App._qrFullscreenCounterInterval);
