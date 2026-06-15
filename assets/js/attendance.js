@@ -134,7 +134,7 @@ const Att = {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Envoi…';
 
-    const svgData = Att.signaturePad.toSVG();
+    const svgData = Att.signaturePad.toDataURL('image/jpeg', 0.6);
 
     const { data, error } = await Att.db.rpc('sign_attendance', {
       p_token:      Att.token,
@@ -146,7 +146,7 @@ const Att = {
     btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i>Confirmer ma présence';
 
     if (error) {
-      Att.showError('Erreur réseau. Vérifiez votre connexion et réessayez.');
+      Att.showError('Erreur lors de l\'envoi : ' + (error.message || error.code || JSON.stringify(error)));
       return;
     }
 
