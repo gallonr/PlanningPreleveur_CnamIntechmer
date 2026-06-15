@@ -80,13 +80,13 @@ BEGIN
     'teacher_name',   te.name,
     'session_type',   s.session_type
   ) INTO v_result
-  FROM attendance_tokens at
-  JOIN sessions s  ON s.id  = at.session_id
+  FROM attendance_tokens tok
+  JOIN sessions s  ON s.id  = tok.session_id
   LEFT JOIN teachings t  ON t.id  = s.teaching_id
   LEFT JOIN modules m    ON m.id  = t.module_id
   JOIN teachers te ON te.id = s.teacher_id
-  WHERE at.token = p_token
-    AND at.expires_at > NOW();
+  WHERE tok.token = p_token
+    AND tok.expires_at > NOW();
 
   IF v_result IS NULL THEN
     RETURN jsonb_build_object('error', 'token_invalide');
@@ -113,17 +113,17 @@ BEGIN
   -- Valider token (non expire)
   SELECT at.session_id, s.session_date
     INTO v_session_id, v_date
-    FROM attendance_tokens at
-    JOIN sessions s ON s.id = at.session_id
-   WHERE at.token = p_token
-     AND at.expires_at > NOW();
+    FROM attendance_tokens tok
+    JOIN sessions s ON s.id = tok.session_id
+   WHERE tok.token = p_token
+     AND tok.expires_at > NOW();
 
   IF v_session_id IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'error', 'token_invalide');
   END IF;
 
   -- Verifier que la seance est aujourd'hui
-  IF v_date <> CURRENT_DATE THEN
+  IF v_date <> (NOW() AT TIME ZONE 'Europe/Paris')::DATE THEN
     RETURN jsonb_build_object('ok', false, 'error', 'mauvaise_date');
   END IF;
 
@@ -150,3 +150,11 @@ $$;
 -- Permissions d'execution pour anon
 GRANT EXECUTE ON FUNCTION get_session_info_from_token(TEXT) TO anon;
 GRANT EXECUTE ON FUNCTION sign_attendance(TEXT, UUID, TEXT) TO anon;
+
+-- Index FK pour les requetes frequentes
+CREATE INDEX IF NOT EXISTS idx_attendance_tokens_session ON attendance_tokens(session_id);
+CREATE INDEX IF NOT EXISTS idx_attendances_session       ON attendances(session_id);
+CREATE INDEX IF NOT EXISTS idx_attendances_student       ON attendances(student_id);
+
+-- Note: les insertions anon dans attendances ne sont possibles que via sign_attendance() (SECURITY DEFINER).
+-- Aucune policy INSERT directe pour anon n'est intentionnelle.
