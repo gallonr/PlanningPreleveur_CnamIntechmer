@@ -508,3 +508,37 @@ SELECT t.id, te.id, 4, 6, 0
 FROM teachings t JOIN modules m ON t.module_id = m.id
 JOIN teachers te ON te.name = 'Mathilde AMIARD'
 WHERE m.code = 'STM028' AND t.title = 'Droit du travail - contrat d''apprentissage';
+
+-- ============================================================
+-- Module emargement
+-- ============================================================
+CREATE TABLE students (
+  id   UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE attendance_tokens (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  session_id UUID REFERENCES sessions(id) ON DELETE CASCADE NOT NULL,
+  token      TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE attendances (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  session_id      UUID REFERENCES sessions(id) ON DELETE CASCADE NOT NULL,
+  student_id      UUID REFERENCES students(id) ON DELETE CASCADE NOT NULL,
+  signed_at       TIMESTAMPTZ DEFAULT NOW(),
+  signature_data  TEXT,
+  signed_by_admin BOOLEAN DEFAULT FALSE,
+  UNIQUE(session_id, student_id)
+);
+
+ALTER TABLE students           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_tokens  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendances        ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_attendance_tokens_session ON attendance_tokens(session_id);
+CREATE INDEX IF NOT EXISTS idx_attendances_session       ON attendances(session_id);
+CREATE INDEX IF NOT EXISTS idx_attendances_student       ON attendances(student_id);

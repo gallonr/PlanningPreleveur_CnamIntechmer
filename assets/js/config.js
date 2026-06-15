@@ -32,5 +32,8 @@ const CONFIG = {
     TD:     '#1d8348',
     TP:     '#7d6608',
     Divers: '#566573'
-  }
+  },
+
+  // Seuil d'alerte absences (0.20 = 20%)
+  ABSENCE_ALERT_THRESHOLD: 0.20
 };
