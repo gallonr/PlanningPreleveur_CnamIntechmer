@@ -295,21 +295,28 @@ body {
    Module émargement
    ============================================================ */
 
-/* Barre de widgets QR (au-dessus du calendrier) */
+/* Panneau flottant QR (bas-droite, par-dessus le calendrier) */
 .attendance-widgets-bar {
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1040;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  pointer-events: none; /* les enfants gèrent eux-mêmes les clics */
+}
+.attendance-widgets-bar > * {
+  pointer-events: all;
 }
 
 /* Carte d'un widget QR */
 .att-widget {
-  min-width: 340px;
-  max-width: 500px;
-  flex: 1;
+  width: 480px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.18) !important;
+  border-radius: 10px;
 }
 
 .att-widget .card-header {
@@ -322,6 +329,7 @@ body {
 .att-pill {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
 }
 
 /* Page attendance.html */
