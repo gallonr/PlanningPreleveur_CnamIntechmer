@@ -986,10 +986,11 @@ const App = {
     const imgEl = document.getElementById('qr-img-fullscreen');
     if (!token || !imgEl || typeof QRCode === 'undefined') return;
     const url = CONFIG.appUrl + `attendance.html?token=${token}`;
-    // Promise-based, ne nécessite aucun élément DOM visible
-    QRCode.toDataURL(url, { width: 420, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
-      .then(dataUrl => { imgEl.src = dataUrl; })
-      .catch(e => console.error('QR fullscreen error:', e));
+    // SVG : aucune dépendance canvas/DOM, fonctionne qu'importe la visibilité
+    QRCode.toString(url, { type: 'svg', margin: 2 }, (err, svgStr) => {
+      if (err) { console.error('QR SVG error:', err); return; }
+      imgEl.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+    });
   },
 
   renderQR(sessionId, token) {
@@ -1021,11 +1022,8 @@ const App = {
 
     const modalEl = document.getElementById('qrFullscreenModal');
 
-    // Générer le QR uniquement après que la modale est pleinement visible
-    // (shown.bs.modal = transition CSS terminée, img dans le DOM visible)
-    modalEl.addEventListener('shown.bs.modal', () => {
-      App._renderFullscreenQR(sessionId);
-    }, { once: true });
+    // SVG ne dépend pas de la visibilité DOM : génération immédiate, avant même l'ouverture
+    App._renderFullscreenQR(sessionId);
 
     App.updateQRFullscreenCounter(sessionId);
     new bootstrap.Modal(modalEl).show();
