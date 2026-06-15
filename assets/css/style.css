@@ -168,6 +168,12 @@ body {
   margin-top: 1px;
 }
 
+/* Séances des autres enseignants (visibles par transparence) */
+.other-teacher-session {
+  opacity: 0.45 !important;
+  cursor: default !important;
+}
+
 /* Enterprise background */
 .fc-bg-event.enterprise-bg {
   background: repeating-linear-gradient(

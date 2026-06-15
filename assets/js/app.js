@@ -46,13 +46,10 @@ const App = {
     App.renderHoursCounter();
     if (App.isAdmin) await App.loadRequests();
 
-    // Écouter les changements temps réel
-    const realtimeChannel = App.isAdmin
-      ? App.db.channel('sessions-admin')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => App.refresh())
-      : App.db.channel('sessions-teacher')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `teacher_id=eq.${App.teacher.id}` }, () => App.refresh());
-    realtimeChannel.subscribe();
+    // Écouter les changements temps réel (toutes les séances pour voir celles des collègues)
+    App.db.channel('sessions-all')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => App.refresh())
+      .subscribe();
   },
 
   async loadReferenceData() {
@@ -95,9 +92,7 @@ const App = {
       .select('*, teacher:teachers(id,name), teaching:teachings(id,title,module:modules(id,code,title))')
       .order('session_date').order('start_time');
 
-    if (!App.isAdmin) {
-      query = query.eq('teacher_id', App.teacher.id);
-    } else if (App.filterTeacherId) {
+    if (App.filterTeacherId) {
       query = query.eq('teacher_id', App.filterTeacherId);
     }
 
@@ -180,6 +175,7 @@ const App = {
 
     // Séances
     App.sessions.forEach(s => {
+      const isOwn = App.isAdmin || s.teacher_id === App.teacher.id;
       const color = CONFIG.sessionColors[s.session_type] || '#566573';
       events.push({
         id: s.id,
@@ -189,7 +185,8 @@ const App = {
         backgroundColor: color,
         borderColor: color,
         textColor: '#fff',
-        extendedProps: { type: 'session', session: s }
+        classNames: isOwn ? [] : ['other-teacher-session'],
+        extendedProps: { type: 'session', session: s, isOwn }
       });
     });
 
@@ -206,6 +203,20 @@ const App = {
     const teacherName = s.teacher ? s.teacher.name : '';
     const mins = durationMinutes(s.start_time, s.end_time);
     const short = mins <= 60;
+    const isOwn = info.event.extendedProps.isOwn !== false;
+
+    if (!isOwn) {
+      if (short) {
+        return { html: `<div class="fc-event-main"><span class="event-teacher">${escapeHtml(teacherName)}</span> <span class="event-module">${escapeHtml(moduleCode || 'Divers')}</span></div>` };
+      }
+      return {
+        html: `<div class="fc-event-main">
+          <div class="event-teacher" style="font-weight:700">${escapeHtml(teacherName)}</div>
+          <div class="event-module">${escapeHtml(moduleCode || 'Divers')} <span class="event-type-badge">${escapeHtml(s.session_type)}</span></div>
+          <div class="event-teaching">${escapeHtml(teachingTitle)}</div>
+        </div>`
+      };
+    }
 
     if (short) {
       return { html: `<div class="fc-event-main"><span class="event-module">${escapeHtml(moduleCode || 'Divers')}</span> <span class="event-type-badge">${escapeHtml(s.session_type)}</span></div>` };
@@ -516,6 +527,7 @@ const App = {
     document.getElementById('btnDirectDelete').classList.toggle('d-none', !App.isAdmin);
     document.getElementById('btnReqModify').classList.toggle('d-none', App.isAdmin || !ownSession);
     document.getElementById('btnReqDelete').classList.toggle('d-none', App.isAdmin || !ownSession);
+    document.getElementById('btnDuplicate').classList.toggle('d-none', !ownSession && !App.isAdmin);
 
     document.getElementById('btnDuplicate').onclick     = () => { bootstrap.Modal.getInstance(m).hide(); App.openDuplicateModal(session); };
     document.getElementById('btnDirectEdit').onclick   = () => { bootstrap.Modal.getInstance(m).hide(); App.openEditModal(session); };
@@ -594,19 +606,16 @@ const App = {
     }
 
     // Calculer les heures posées par (teaching_id, type) pour l'enseignant affiché
+    const targetTeacherId = App.filterTeacherId || App.teacher.id;
     const placed = {};
     App.sessions.forEach(s => {
-      if (!s.teaching_id) return;
+      if (!s.teaching_id || s.teacher_id !== targetTeacherId) return;
       const key = `${s.teaching_id}_${s.session_type}`;
       placed[key] = (placed[key] || 0) + durationMinutes(s.start_time, s.end_time) / 60;
     });
 
     // Grouper les assignments par module
-    const myAssignments = App.assignments.filter(a =>
-      App.filterTeacherId
-        ? a.teacher_id === App.filterTeacherId
-        : a.teacher_id === App.teacher.id
-    );
+    const myAssignments = App.assignments.filter(a => a.teacher_id === targetTeacherId);
 
     const byModule = {};
     myAssignments.forEach(a => {
