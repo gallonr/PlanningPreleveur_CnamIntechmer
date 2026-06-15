@@ -9,6 +9,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
+  <!-- QR Code (émargement) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -44,6 +46,10 @@
           <li><a class="dropdown-item" href="#" onclick="App.exportMineExcel()"><i class="bi bi-file-excel me-2"></i>Excel — toutes mes séances</a></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="#" onclick="App.exportWeekPDF()"><i class="bi bi-calendar-week me-2"></i>PDF — semaine étudiants</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><h6 class="dropdown-header">Émargement</h6></li>
+          <li><a class="dropdown-item" href="#" onclick="exportBlankAttendancePDF()">
+            <i class="bi bi-file-pdf me-2"></i>Feuille vierge — séance en cours</a></li>
         </ul>
       </div>
 
@@ -104,6 +110,9 @@
     </div>
 
   </div>
+
+  <!-- WIDGET EMARGEMENT (affiché automatiquement si séance en cours) -->
+  <div id="attendanceWidgets" class="attendance-widgets-bar d-none"></div>
 
   <!-- CALENDAR -->
   <div class="main-content">
@@ -255,6 +264,12 @@
           <i class="bi bi-people me-1"></i>Enseignants
         </button>
       </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPresences"
+                onclick="App.renderAdminPresences()">
+          <i class="bi bi-person-check me-1"></i>Présences
+        </button>
+      </li>
     </ul>
 
     <div class="tab-content px-3 py-3">
@@ -279,6 +294,32 @@
 
       <div class="tab-pane fade" id="tabTeachers">
         <div id="teachersContainer"></div>
+      </div>
+
+      <div class="tab-pane fade" id="tabPresences">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <small class="text-muted">Présences et absences par séance</small>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.renderAdminPresences()">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+        <div class="btn-group btn-group-sm mb-3 w-100" role="group">
+          <button type="button" class="btn btn-outline-primary active" id="presViewBySession"
+                  onclick="App.switchPresView('session')">Par séance</button>
+          <button type="button" class="btn btn-outline-primary" id="presViewByStudent"
+                  onclick="App.switchPresView('student')">Par étudiant</button>
+          <button type="button" class="btn btn-outline-primary" id="presViewStats"
+                  onclick="App.switchPresView('stats')">Statistiques</button>
+        </div>
+        <div id="presencesContainer"></div>
+        <hr>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <small class="fw-bold">Liste des étudiants</small>
+          <button class="btn btn-sm btn-outline-success" onclick="App.openAddStudentModal()">
+            <i class="bi bi-plus me-1"></i>Ajouter
+          </button>
+        </div>
+        <div id="studentsListContainer"></div>
       </div>
     </div>
   </div>
@@ -409,5 +450,26 @@
     if (b2) { b2.textContent = n; b2.classList.toggle('d-none', n === 0); }
   };
 </script>
+<!-- Modal ajout étudiant -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Ajouter un étudiant</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Nom complet <span class="text-danger">*</span></label>
+          <input type="text" id="studentName" class="form-control" placeholder="Prénom NOM">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-primary" onclick="App.saveStudent()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
