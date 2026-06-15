@@ -88,15 +88,9 @@ const App = {
   },
 
   async loadSessions() {
-    let query = App.db.from('sessions')
+    const { data } = await App.db.from('sessions')
       .select('*, teacher:teachers(id,name), teaching:teachings(id,title,module:modules(id,code,title))')
       .order('session_date').order('start_time');
-
-    if (App.filterTeacherId) {
-      query = query.eq('teacher_id', App.filterTeacherId);
-    }
-
-    const { data } = await query;
     App.sessions = data || [];
   },
 
@@ -175,7 +169,9 @@ const App = {
 
     // Séances
     App.sessions.forEach(s => {
-      const isOwn = App.isAdmin || s.teacher_id === App.teacher.id;
+      const isOwn = App.filterTeacherId
+        ? s.teacher_id === App.filterTeacherId
+        : App.isAdmin || s.teacher_id === App.teacher.id;
       const color = CONFIG.sessionColors[s.session_type] || '#566573';
       events.push({
         id: s.id,
