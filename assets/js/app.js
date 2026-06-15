@@ -1130,7 +1130,14 @@ const App = {
             <i class="bi bi-check-circle me-1"></i>${present.length} présent${present.length > 1 ? 's' : ''}
           </span></div>
           <ul class="list-unstyled mb-2" style="font-size:13px">
-            ${present.map(s => `<li class="text-success"><i class="bi bi-check me-1"></i>${s.name}</li>`).join('')}
+            ${present.map(s => `<li class="text-success d-flex align-items-center gap-1">
+              <i class="bi bi-check me-1"></i>${s.name}
+              <button class="btn btn-xs btn-outline-danger ms-auto" style="font-size:10px;padding:1px 5px"
+                      title="Annuler l'émargement"
+                      onclick="App.cancelSign('${session.id}','${s.id}','${s.name.replace(/'/g, "\\'")}')">
+                <i class="bi bi-x"></i>
+              </button>
+            </li>`).join('')}
           </ul>
           ${absent.length > 0 ? `
           <div class="mb-1"><span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
@@ -1161,6 +1168,23 @@ const App = {
     if (error && !error.message.includes('duplicate')) {
       showToast('Erreur lors de l\'émargement manuel.', 'danger');
     }
+  },
+
+  async cancelSign(sessionId, studentId, studentName) {
+    if (!confirm(`Annuler l'émargement de ${studentName} ?\nCet étudiant sera de nouveau marqué absent.`)) return;
+    const { data, error } = await App.db.rpc('cancel_attendance', {
+      p_session_id: sessionId,
+      p_student_id: studentId
+    });
+    if (error) {
+      showToast('Erreur lors de l\'annulation : ' + (error.message || error.code), 'danger');
+      return;
+    }
+    if (data && !data.ok) {
+      showToast('Annulation impossible : ' + (data.error || 'inconnu'), 'danger');
+      return;
+    }
+    showToast(`Émargement de ${studentName} annulé.`, 'warning');
   },
 
   closeAttendanceSession(sessionId) {
