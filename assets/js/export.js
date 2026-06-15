@@ -209,3 +209,196 @@ function exportStatsExcel(statsRows) {
   XLSX.utils.book_append_sheet(wb, ws, 'Statistiques');
   XLSX.writeFile(wb, `stats_heures_DSP_2026-2027.xlsx`);
 }
+
+// ============================================================
+// Export — Feuille d'émargement remplie (PDF)
+// ============================================================
+async function exportFilledAttendancePDF(sessionId) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const session  = App.sessions.find(s => s.id === sessionId);
+  if (!session) { showToast('Séance introuvable.', 'danger'); return; }
+  const teaching = App.teachings.find(t => t.id === session.teaching_id);
+  const teacher  = App.teachers.find(t => t.id === session.teacher_id);
+
+  const { data: atts } = await App.db
+    .from('attendances')
+    .select('student_id, signed_at, signed_by_admin, signature_data')
+    .eq('session_id', sessionId);
+
+  _renderAttendancePDF(doc, session, teaching, teacher, App.attStudents, atts || [], false);
+  const dateStr = session.session_date.replace(/-/g, '');
+  doc.save(`emargement_${dateStr}_${(teaching?.title || 'seance').replace(/\s+/g,'_')}.pdf`);
+}
+
+// ============================================================
+// Export — Feuille d'émargement vierge (PDF)
+// ============================================================
+async function exportBlankAttendancePDFForSession(sessionId) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const session  = App.sessions.find(s => s.id === sessionId);
+  if (!session) { showToast('Séance introuvable.', 'danger'); return; }
+  const teaching = App.teachings.find(t => t.id === session.teaching_id);
+  const teacher  = App.teachers.find(t => t.id === session.teacher_id);
+
+  _renderAttendancePDF(doc, session, teaching, teacher, App.attStudents, [], true);
+  const dateStr = session.session_date.replace(/-/g, '');
+  doc.save(`emargement_vierge_${dateStr}_${(teaching?.title || 'seance').replace(/\s+/g,'_')}.pdf`);
+}
+
+// Feuille vierge depuis le bouton export "séance en cours" (navbar)
+function exportBlankAttendancePDF() {
+  const live = App.detectLiveSessions ? App.detectLiveSessions() : [];
+  if (live.length === 0) { showToast('Aucune séance en cours.', 'warning'); return; }
+  exportBlankAttendancePDFForSession(live[0].id);
+}
+
+// ============================================================
+// Fonction commune de rendu PDF émargement
+// ============================================================
+function _renderAttendancePDF(doc, session, teaching, teacher, students, atts, blank) {
+  const margin  = 15;
+  const pageW   = 210;
+  const usableW = pageW - margin * 2;
+  let y = margin;
+
+  // En-tête
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text("CNAM Intechmer -- Feuille d'emargement", pageW / 2, y, { align: 'center' });
+  y += 7;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  const dateLabel = new Date(session.session_date + 'T00:00:00')
+    .toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const modCode  = teaching?.module?.code  || '';
+  const modTitle = teaching?.module?.title || '';
+  doc.text([
+    `Module : ${modCode} -- ${modTitle}`,
+    `Enseignement : ${teaching?.title || 'Seance'}`,
+    `Date : ${dateLabel}   Horaire : ${session.start_time.slice(0,5)} - ${session.end_time.slice(0,5)}`,
+    `Enseignant(e) : ${teacher?.name || ''}   Type : ${session.session_type}`,
+    blank ? 'FEUILLE VIERGE -- A conserver' : `Exportee le : ${new Date().toLocaleDateString('fr-FR')}`
+  ], margin, y);
+  y += 28;
+
+  // Ligne de séparation
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageW - margin, y);
+  y += 5;
+
+  // En-têtes tableau
+  const colN    = 8;
+  const colName = 70;
+  const colTime = 28;
+  const colSign = usableW - colN - colName - colTime;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('N',      margin + 1,                  y);
+  doc.text('Nom',     margin + colN,            y);
+  doc.text('Heure',   margin + colN + colName,  y);
+  doc.text('Signature', margin + colN + colName + colTime, y);
+  y += 4;
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageW - margin, y);
+  y += 3;
+
+  // Lignes étudiants
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const rowH = blank ? 14 : 12;
+
+  students.forEach((student, i) => {
+    if (y + rowH > 280) {
+      doc.addPage();
+      y = margin;
+    }
+
+    const att = atts.find(a => a.student_id === student.id);
+    doc.text(String(i + 1), margin + 2, y + 5);
+    doc.text(student.name,  margin + colN, y + 5);
+
+    if (!blank && att) {
+      const heure = new Date(att.signed_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      doc.text(heure, margin + colN + colName + 2, y + 5);
+
+      if (att.signature_data) {
+        try {
+          const svgB64 = btoa(unescape(encodeURIComponent(att.signature_data)));
+          doc.addImage(
+            'data:image/svg+xml;base64,' + svgB64,
+            'SVG',
+            margin + colN + colName + colTime,
+            y,
+            colSign,
+            rowH - 1
+          );
+        } catch (e) {
+          doc.text('[signature]', margin + colN + colName + colTime + 2, y + 5);
+        }
+      }
+      if (att.signed_by_admin) {
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text('admin', margin + colN + colName + colTime + 2, y + rowH - 2);
+        doc.setFontSize(9);
+        doc.setTextColor(0);
+      }
+    }
+
+    // Bordure ligne + séparateurs colonnes
+    doc.setLineWidth(0.1);
+    doc.rect(margin, y, usableW, rowH);
+    doc.line(margin + colN,                     y, margin + colN,                     y + rowH);
+    doc.line(margin + colN + colName,           y, margin + colN + colName,           y + rowH);
+    doc.line(margin + colN + colName + colTime, y, margin + colN + colName + colTime, y + rowH);
+
+    y += rowH;
+  });
+
+  // Pied de page
+  y += 8;
+  doc.setFontSize(8);
+  doc.setTextColor(130);
+  doc.text(
+    blank
+      ? "Feuille d'emargement papier -- Formation DSP Preleveur en Milieu Naturel -- CNAM Intechmer"
+      : `Document genere automatiquement -- ${students.length} etudiant${students.length > 1 ? 's' : ''} -- DSP Preleveur CNAM Intechmer`,
+    pageW / 2, y, { align: 'center' }
+  );
+  doc.setTextColor(0);
+}
+
+// ============================================================
+// Export — Présences Excel (tableau croisé)
+// ============================================================
+async function exportAttendanceExcel() {
+  const { data: atts } = await App.db
+    .from('attendances')
+    .select('session_id, student_id, signed_at');
+
+  const signedSet = new Set((atts || []).map(a => `${a.session_id}_${a.student_id}`));
+
+  const sortedSessions = [...App.sessions].sort((a, b) =>
+    a.session_date.localeCompare(b.session_date) || a.start_time.localeCompare(b.start_time));
+
+  const header = ['Etudiant', ...sortedSessions.map(s => {
+    const t = App.teachings.find(x => x.id === s.teaching_id);
+    return `${s.session_date} ${t?.title || 'Seance'}`;
+  })];
+
+  const dataRows = App.attStudents.map(student => [
+    student.name,
+    ...sortedSessions.map(s => signedSet.has(`${s.id}_${student.id}`) ? 'P' : 'A')
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([header, ...dataRows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Presences');
+  XLSX.writeFile(wb, 'presences_etudiants_DSP_2026-2027.xlsx');
+}
