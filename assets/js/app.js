@@ -22,6 +22,12 @@ const App = {
   editingSession: null,
   _duplicatingSession: null,
 
+  // --- Émargement ---
+  attIntervals: {},
+  attTokens:    {},
+  attStudents:  [],
+  attOpen:      {},
+
   async init() {
     App.db = getClient();
 
@@ -44,6 +50,7 @@ const App = {
     await App.loadSessions();
     App.initCalendar();
     App.renderHoursCounter();
+    App.initAttendance();
     if (App.isAdmin) await App.loadRequests();
 
     // Écouter les changements temps réel (toutes les séances pour voir celles des collègues)
@@ -882,7 +889,189 @@ const App = {
     const weekSessions = App.sessions.filter(s => s.session_date >= mondayStr && s.session_date <= fridayStr);
     const label = `Semaine du ${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
     exportWeeklyPDF(label, mondayStr, weekSessions, App.teachers);
-  }
+  },
+
+  // ============================================================
+  // Emargement — Widget QR enseignant
+  // ============================================================
+
+  async initAttendance() {
+    const { data } = await App.db.from('students').select('id, name').order('name');
+    App.attStudents = data || [];
+    App.renderAttendanceWidgets();
+    setInterval(() => App.renderAttendanceWidgets(), 60000);
+  },
+
+  detectLiveSessions() {
+    const now    = new Date();
+    const y      = now.getFullYear();
+    const mo     = String(now.getMonth() + 1).padStart(2, '0');
+    const d      = String(now.getDate()).padStart(2, '0');
+    const today  = `${y}-${mo}-${d}`;
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    return App.sessions.filter(s => {
+      if (s.session_date !== today) return false;
+      const [sh, sm] = s.start_time.split(':').map(Number);
+      const [eh, em] = s.end_time.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin   = eh * 60 + em;
+      if (nowMin < startMin - 5 || nowMin > endMin) return false;
+      return App.isAdmin || s.teacher_id === App.teacher.id;
+    });
+  },
+
+  renderAttendanceWidgets() {
+    const live = App.detectLiveSessions();
+    const bar  = document.getElementById('attendanceWidgets');
+    if (!bar) return;
+
+    Object.keys(App.attIntervals).forEach(sid => {
+      if (!live.find(s => s.id === sid)) App.stopAttendanceSession(sid);
+    });
+
+    if (live.length === 0) {
+      bar.classList.add('d-none');
+      return;
+    }
+    bar.classList.remove('d-none');
+
+    live.forEach(session => {
+      if (App.attOpen[session.id] === false) return;
+      if (!App.attIntervals[session.id]) App.startAttendanceSession(session);
+
+      let widget = document.getElementById(`att-widget-${session.id}`);
+      if (!widget) {
+        widget = document.createElement('div');
+        widget.id = `att-widget-${session.id}`;
+        widget.className = 'att-widget card shadow-sm';
+        bar.appendChild(widget);
+      }
+      App.updateAttendanceWidget(session, widget);
+    });
+  },
+
+  async startAttendanceSession(session) {
+    await App.rotateToken(session.id);
+    App.attIntervals[session.id] = setInterval(() => App.rotateToken(session.id), 120000);
+    App.db.channel(`att-${session.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'attendances',
+        filter: `session_id=eq.${session.id}`
+      }, () => {
+        const widget = document.getElementById(`att-widget-${session.id}`);
+        if (widget) App.updateAttendanceWidget(session, widget);
+      })
+      .subscribe();
+  },
+
+  async rotateToken(sessionId) {
+    const token     = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 130000).toISOString();
+    await App.db.from('attendance_tokens').delete().eq('session_id', sessionId);
+    const { error } = await App.db.from('attendance_tokens')
+      .insert({ session_id: sessionId, token, expires_at: expiresAt });
+    if (!error) {
+      App.attTokens[sessionId] = token;
+      App.renderQR(sessionId, token);
+    }
+  },
+
+  renderQR(sessionId, token) {
+    const el = document.getElementById(`qr-canvas-${sessionId}`);
+    if (!el || typeof QRCode === 'undefined') return;
+    const url = CONFIG.appUrl + `attendance.html?token=${token}`;
+    QRCode.toCanvas(el, url, { width: 180, margin: 2 }, () => {});
+  },
+
+  async updateAttendanceWidget(session, widget) {
+    const { data: atts } = await App.db
+      .from('attendances')
+      .select('student_id, signed_at, signed_by_admin')
+      .eq('session_id', session.id);
+
+    const signed  = new Set((atts || []).map(a => a.student_id));
+    const present = App.attStudents.filter(s => signed.has(s.id));
+    const absent  = App.attStudents.filter(s => !signed.has(s.id));
+    const total   = App.attStudents.length;
+    const teaching = App.teachings.find(t => t.id === session.teaching_id);
+    const label   = teaching ? teaching.title : 'Séance';
+
+    widget.innerHTML = `
+      <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <strong><i class="bi bi-qr-code me-1"></i>${label}
+          <span class="badge bg-success ms-1">${present.length}/${total}</span>
+        </strong>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-secondary" title="Feuille vierge"
+                  onclick="exportBlankAttendancePDFForSession('${session.id}')">
+            <i class="bi bi-file-pdf"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" title="Fermer l'émargement"
+                  onclick="App.closeAttendanceSession('${session.id}')">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-2 d-flex gap-3 flex-wrap">
+        <div>
+          <canvas id="qr-canvas-${session.id}" width="180" height="180"></canvas>
+          <div class="text-center" style="font-size:10px;color:#888">
+            <i class="bi bi-arrow-repeat me-1"></i>Se renouvelle automatiquement
+          </div>
+        </div>
+        <div class="flex-fill" style="min-width:160px">
+          <div class="mb-1"><span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+            <i class="bi bi-check-circle me-1"></i>${present.length} présent${present.length > 1 ? 's' : ''}
+          </span></div>
+          <ul class="list-unstyled mb-2" style="font-size:13px">
+            ${present.map(s => `<li class="text-success"><i class="bi bi-check me-1"></i>${s.name}</li>`).join('')}
+          </ul>
+          ${absent.length > 0 ? `
+          <div class="mb-1"><span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
+            <i class="bi bi-x-circle me-1"></i>${absent.length} absent${absent.length > 1 ? 's' : ''}
+          </span></div>
+          <ul class="list-unstyled mb-0" style="font-size:13px">
+            ${absent.map(s => `<li class="text-danger d-flex align-items-center gap-1">
+              <i class="bi bi-dash me-1"></i>${s.name}
+              <button class="btn btn-xs btn-outline-secondary ms-auto" style="font-size:10px;padding:1px 5px"
+                      onclick="App.manualSign('${session.id}','${s.id}','${s.name}')">
+                Émarger
+              </button>
+            </li>`).join('')}
+          </ul>` : ''}
+        </div>
+      </div>`;
+
+    if (App.attTokens[session.id]) App.renderQR(session.id, App.attTokens[session.id]);
+  },
+
+  async manualSign(sessionId, studentId, studentName) {
+    if (!confirm(`Émarger manuellement ${studentName} ?`)) return;
+    const { error } = await App.db.from('attendances').insert({
+      session_id: sessionId, student_id: studentId, signed_by_admin: true
+    });
+    if (error && !error.message.includes('duplicate')) {
+      showToast('Erreur lors de l\'émargement manuel.', 'danger');
+    }
+  },
+
+  closeAttendanceSession(sessionId) {
+    App.attOpen[sessionId] = false;
+    App.stopAttendanceSession(sessionId);
+    const widget = document.getElementById(`att-widget-${sessionId}`);
+    if (widget) widget.remove();
+    const bar = document.getElementById('attendanceWidgets');
+    if (bar && !bar.querySelector('.att-widget')) bar.classList.add('d-none');
+  },
+
+  stopAttendanceSession(sessionId) {
+    if (App.attIntervals[sessionId]) {
+      clearInterval(App.attIntervals[sessionId]);
+      delete App.attIntervals[sessionId];
+    }
+    delete App.attTokens[sessionId];
+  },
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
